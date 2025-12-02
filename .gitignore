@@ -1,0 +1,44 @@
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos de prueba de audio
+*.wav
+*.mp3
+*.ogg
+*.flac
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Archivos de configuración del IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+
+# Modelo de Vosk (opcional - descomenta si no quieres subir el modelo)
+# vosk-model-*/
+
+# Zone.Identifier (archivos de Windows en WSL)
+*.Zone.Identifier
