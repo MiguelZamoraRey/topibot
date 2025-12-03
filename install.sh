@@ -1,5 +1,6 @@
 #!/bin/bash
-# Script de instalación automatizada de TopiBot para Raspberry Pi 3 B+
+# Script de instalación automatizada de TopiBot para Raspberry Pi
+# Optimizado para Raspberry Pi 5 con soporte para Raspberry Pi 3/4
 
 set -e  # Salir si hay algún error
 
@@ -91,8 +92,18 @@ echo ""
 # Verificar que estamos en Raspberry Pi
 if [ ! -f /proc/device-tree/model ]; then
     print_warning "No se detectó Raspberry Pi, pero continuando..."
+    RASPI_MODEL="Unknown"
 else
-    print_status "Raspberry Pi detectada: $(cat /proc/device-tree/model)"
+    RASPI_MODEL=$(cat /proc/device-tree/model)
+    print_status "Raspberry Pi detectada: $RASPI_MODEL"
+    
+    # Detectar si es Raspberry Pi 5
+    if echo "$RASPI_MODEL" | grep -qi "Raspberry Pi 5"; then
+        IS_RASPI5=true
+        print_status "🚀 Raspberry Pi 5 detectada - Usando optimizaciones"
+    else
+        IS_RASPI5=false
+    fi
 fi
 
 # Detectar y configurar Node.js (nvm o system)
@@ -107,12 +118,19 @@ if [ -f "$USER_HOME/.nvm/nvm.sh" ]; then
     if command -v nvm &> /dev/null; then
         print_status "nvm detectado"
         
-        # Intentar usar Node.js 18
-        if nvm ls 18 &> /dev/null; then
-            nvm use 18 &> /dev/null
+        # Para Raspberry Pi 5, usar Node.js 20 LTS; para otros, usar 18 LTS
+        if [ "$IS_RASPI5" = true ]; then
+            TARGET_NODE_VERSION=20
+        else
+            TARGET_NODE_VERSION=18
+        fi
+        
+        # Intentar usar la versión target
+        if nvm ls $TARGET_NODE_VERSION &> /dev/null; then
+            nvm use $TARGET_NODE_VERSION &> /dev/null
             print_status "Usando Node.js $(node -v) desde nvm"
         else
-            print_warning "Node.js 18 no instalado en nvm, usando versión actual"
+            print_warning "Node.js $TARGET_NODE_VERSION no instalado en nvm, usando versión actual"
             nvm use node &> /dev/null
         fi
         
@@ -126,19 +144,19 @@ if command -v node &> /dev/null; then
     NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
     NODE_PATH=$(which node)
     
-    if [ "$NODE_VERSION" -ge 16 ]; then
+    if [ "$NODE_VERSION" -ge 18 ]; then
         print_status "Node.js $(node -v) - Compatible ✓"
     else
-        print_error "Node.js $NODE_VERSION - Se requiere versión 16 o superior"
+        print_error "Node.js $NODE_VERSION - Se requiere versión 18 o superior"
         echo "Opciones de instalación:"
-        echo "  1. Con nvm: nvm install 18 && nvm use 18"
-        echo "  2. Sistema: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
+        echo "  1. Con nvm: nvm install 20 && nvm use 20"
+        echo "  2. Sistema: curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
         echo "             sudo apt install -y nodejs"
         exit 1
     fi
 else
     print_error "Node.js no está instalado"
-    echo "Instala Node.js 18 con nvm o desde el sistema"
+    echo "Instala Node.js 20 LTS con nvm o desde el sistema"
     exit 1
 fi
 
@@ -151,7 +169,7 @@ PYTHON_CMD=""
 PYTHON_VER=""
 PYTHON_NEEDS_FIX=false
 
-for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; do
+for py_version in python3.12 python3.11 python3.10 python3.9 python3; do
     if command -v $py_version &> /dev/null; then
         PY_VER=$($py_version --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
         PY_MAJOR=$(echo $PY_VER | cut -d. -f1)
@@ -161,10 +179,11 @@ for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; 
             PYTHON_CMD=$py_version
             PYTHON_VER=$PY_VER
             
-            # Python 3.13+ necesita fix con execstack
-            if [ "$PY_MINOR" -ge 13 ]; then
+            # Python 3.13+ necesita workaround para libvosk.so en Raspberry Pi 3/4
+            # En Raspberry Pi 5 generalmente funciona mejor
+            if [ "$PY_MINOR" -ge 13 ] && [ "$IS_RASPI5" != true ]; then
                 PYTHON_NEEDS_FIX=true
-                print_warning "Python $PY_VER detectado - Requiere fix para libvosk.so"
+                print_warning "Python $PY_VER detectado - Puede requerir workaround para libvosk.so"
             else
                 print_status "Python $PY_VER ($py_version) - Compatible ✓"
             fi
@@ -203,7 +222,7 @@ echo "📦 Instalando dependencias Python en venv..."
 
 print_status "Dependencias Python instaladas en venv"
 
-# Aplicar fix para Python 3.13+ si es necesario
+# Aplicar fix para Python 3.13+ si es necesario (solo Raspberry Pi 3/4)
 if [ "$PYTHON_NEEDS_FIX" = true ]; then
     echo ""
     echo "🔧 Aplicando workaround para Python $PYTHON_VER con libvosk.so..."
@@ -213,26 +232,14 @@ if [ "$PYTHON_NEEDS_FIX" = true ]; then
     if [ -n "$LIBVOSK_PATH" ]; then
         # Intentar con execstack si está disponible
         if command -v execstack &> /dev/null; then
-            sudo execstack -c "$LIBVOSK_PATH"
+            sudo execstack -c "$LIBVOSK_PATH" 2>/dev/null || print_warning "execstack falló, continuando..."
             print_status "Fix aplicado con execstack ✓"
         else
-            # Workaround alternativo: cambiar permisos
-            print_warning "execstack no disponible, usando workaround alternativo..."
-            
-            # Crear wrapper script que deshabilita la protección
-            cat > "$PROJECT_DIR/stt_wrapper.sh" << 'EOF'
-#!/bin/bash
-export PYTHON_GIL=0
-export LD_PRELOAD=""
-exec "$@"
-EOF
-            chmod +x "$PROJECT_DIR/stt_wrapper.sh"
-            
-            print_status "Workaround aplicado (puede que requiera reinicio del sistema)"
-            print_warning "Si los servicios fallan, ejecuta: sudo sysctl -w kernel.exec-shield=0"
+            print_warning "execstack no disponible"
+            print_warning "Si el servicio STT falla, intenta: echo 0 | sudo tee /proc/sys/kernel/randomize_va_space"
         fi
     else
-        print_warning "libvosk.so no encontrado aún, se aplicará fix al iniciar servicios"
+        print_warning "libvosk.so no encontrado aún"
     fi
 fi
 

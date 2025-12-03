@@ -2,6 +2,8 @@
 
 Sistema de reconocimiento de voz **completamente offline** usando Vosk y palabra de activación.
 
+> 🚀 **¿Tienes Raspberry Pi 5?** Usa la [versión optimizada](./README-RASPI5.md) con Node.js 20 LTS y mejor rendimiento.
+
 <div align="center">
 
 **[🚀 Inicio Rápido](#inicio-rápido)** • 
@@ -175,7 +177,8 @@ export const TIEMPO_ESCUCHA_ACTIVA = 10000; // 10 segundos
 ## Requisitos
 
 - **Hardware**: Raspberry Pi 3 B+ o superior, Micrófono USB
-- **Software**: Node.js 16+, Python 3.7+
+  - 🚀 Para Raspberry Pi 5: Usa la [rama optimizada](./README-RASPI5.md)
+- **Software**: Node.js 18+, Python 3.7+
 - **OS**: Raspberry Pi OS (Bullseye o posterior)
 
 ---
