@@ -41,12 +41,24 @@ let ledState = false;
 // ========================================
 
 /**
+ * Limpia procesos gpioset anteriores
+ */
+function cleanupGpioProcesses() {
+  try {
+    execSync('pkill -f "gpioset.*17="', { stdio: 'ignore' });
+  } catch (err) {
+    // Ignorar error si no hay procesos
+  }
+}
+
+/**
  * Enciende el LED
  */
 export function encenderLED() {
   ledState = true;
   if (gpioAvailable) {
     try {
+      cleanupGpioProcesses();
       execSync(`gpioset -z -c ${GPIO_CHIP} ${LED_PIN}=1`, { stdio: 'ignore' });
     } catch (err) {
       console.log('⚠️  Error al encender LED:', err.message);
@@ -62,6 +74,7 @@ export function apagarLED() {
   ledState = false;
   if (gpioAvailable) {
     try {
+      cleanupGpioProcesses();
       execSync(`gpioset -z -c ${GPIO_CHIP} ${LED_PIN}=0`, { stdio: 'ignore' });
     } catch (err) {
       console.log('⚠️  Error al apagar LED:', err.message);
@@ -84,6 +97,7 @@ export function toggleLED() {
   ledState = !ledState;
   if (gpioAvailable) {
     try {
+      cleanupGpioProcesses();
       execSync(`gpioset -z -c ${GPIO_CHIP} ${LED_PIN}=${ledState ? 1 : 0}`, { stdio: 'ignore' });
     } catch (err) {
       console.log('⚠️  Error al cambiar LED:', err.message);
