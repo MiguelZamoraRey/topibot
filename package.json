@@ -1,17 +1,22 @@
 {
   "name": "vosk-commands",
   "version": "1.0.0",
-  "description": "",
+  "description": "TopiBot - Sistema de reconocimiento de voz para Raspberry Pi",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node voz_led.js"
+    "start": "node index.js",
+    "start:legacy": "node voz_led.js"
   },
-  "keywords": [],
+  "keywords": ["vosk", "speech-recognition", "raspberry-pi"],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
+    "axios": "^0.27.2",
     "mic": "^2.1.2",
     "vosk": "^0.3.39"
   }

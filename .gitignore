@@ -3,12 +3,22 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+
+# Modelo Vosk (muy pesado para git)
+model/*
+!model/.gitkeep
+
+# Archivos temporales del modelo
+vosk-model-*.zip
+vosk-model-*/
 
 # Archivos de prueba de audio
 *.wav
 *.mp3
 *.ogg
 *.flac
+test.*
 
 # Archivos del sistema operativo
 .DS_Store
@@ -16,6 +26,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.Zone.Identifier
 
 # Archivos de configuración del IDE
 .vscode/

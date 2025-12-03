@@ -1,0 +1,14 @@
+[Unit]
+Description=TopiBot Node Service
+After=network.target stt.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/topibot
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

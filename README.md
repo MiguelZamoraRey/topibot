@@ -1,195 +1,260 @@
-# Sistema de Reconocimiento de Voz con Vosk
+# 🤖 TopiBot - Asistente de Voz Offline para Raspberry Pi
 
-Sistema de control por voz para Raspberry Pi usando el modelo Vosk en español con palabra de activación.
+Sistema de reconocimiento de voz **completamente offline** usando Vosk y palabra de activación.
 
-## 🎯 Cómo funciona
+<div align="center">
 
-1. **Di la palabra de activación**: "**Topibot**"
-2. **El sistema se activa** por 5 segundos
-3. **Di tu comando** (ej: "encender", "apagar", "hora")
-4. **El sistema ejecuta la acción**
-5. Si no dices nada en 5 segundos, el sistema vuelve a modo espera
+**[🚀 Inicio Rápido](#inicio-rápido)** • 
+**[📖 Documentación](./docs/GUIA_COMPLETA.md)** • 
+**[🎤 Comandos](#comandos-disponibles)** • 
+**[🔧 Desarrollo](#desarrollo)**
 
-⚠️ **Importante**: El sistema SOLO responde a comandos después de decir "Topibot". Puedes hablar normalmente sin que se ejecuten comandos accidentales.
+</div>
 
-## 📋 Requisitos
+---
 
-- Node.js v18+
-- Micrófono (en Raspberry Pi)
-- alsa-utils (instalado automáticamente en Raspberry Pi)
+## ¿Qué es TopiBot?
 
-## 🚀 Instalación
+TopiBot te permite controlar tu Raspberry Pi por voz sin necesidad de internet:
 
-```bash
-npm install
+```
+Tú: "topibot"              →  🟢 Sistema activado
+Tú: "encender"             →  💡 LED encendido
+Tú: "qué hora es"          →  🕐 La hora es: 14:30
 ```
 
-## ▶️ Ejecución
+### Características
+
+- ✅ **100% Offline** - No requiere internet
+- ✅ **Palabra de activación** - Solo responde cuando dices "topibot"
+- ✅ **Bajo consumo** - ~300 MB RAM en Raspberry Pi 3 B+
+- ✅ **Extensible** - Añade tus propios comandos fácilmente
+- ✅ **Plug & Play** - Script de instalación automática
+
+---
+
+## Inicio Rápido
+
+### 1. Clonar en tu Raspberry Pi
 
 ```bash
-npm start
+git clone <tu-repo> /home/pi/topibot
+cd /home/pi/topibot
 ```
 
-## 🎯 Comandos Disponibles
+### 2. Ejecutar instalador
 
-### 🔑 Palabra de Activación
-- **"Topibot"** - Activa el sistema por 5 segundos
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+El instalador se encarga de todo:
+- Instala dependencias (Python, Node.js, ALSA)
+- Descarga el modelo de voz en español
+- Configura servicios systemd
+- Inicia el sistema
+
+### 3. Verificar
+
+```bash
+./verificar.sh
+```
+
+### 4. ¡Pruébalo!
+
+Di: **"topibot"** → **"encender"**
+
+---
+
+## Arquitectura
+
+```
+Micrófono → Python/Vosk → HTTP → Node.js → Acciones
+            (Puerto 5005)         (Comandos)
+```
+
+- **Python**: Reconocimiento de voz pesado (Vosk)
+- **Node.js**: Lógica de comandos ligera
+- **Comunicación**: HTTP REST local
+
+---
+
+## Comandos Disponibles
+
+### Activación
+- **"topibot"** - Activa el sistema por 5 segundos
 
 ### LED
-- **Encender LED**: "encender", "enciende", "prende", "prender"
-- **Apagar LED**: "apagar", "apaga"
-- **Estado LED**: "estado", "cómo está", "como esta"
-- **Alternar LED**: "alternar", "cambiar", "toggle"
+- **Encender**: "encender", "enciende", "prende"
+- **Apagar**: "apagar", "apaga"
+- **Estado**: "estado", "cómo está"
+- **Alternar**: "alternar", "cambiar"
 
 ### Información
-- **Saludar**: "hola", "buenos días", "buenas tardes", "buenas noches"
+- **Saludar**: "hola", "buenos días"
 - **Hora**: "hora", "qué hora es"
 - **Fecha**: "fecha", "qué día es"
 
 ### Sistema
-- **Info Sistema**: "información", "sistema"
+- **Info**: "información", "sistema"
 - **Reiniciar**: "reiniciar", "reset"
 
-### 💡 Ejemplo de uso
+---
+
+## Gestión del Sistema
+
+### Comandos útiles
+
+```bash
+# Ver logs en tiempo real
+sudo journalctl -u topibot.service -f
+
+# Reiniciar servicios
+sudo systemctl restart stt.service topibot.service
+
+# Ver estado
+sudo systemctl status topibot.service
+
+# Verificar sistema
+./verificar.sh
 ```
-Usuario: "Topibot"
-Sistema: ✅ Sistema activado - Escuchando comandos por 5 segundos...
 
-Usuario: "encender"
-Sistema: 💡 LED encendido
+---
 
-Usuario: "qué hora es"
-Sistema: 🕐 La hora es: 14:30:25
+## Desarrollo
 
-[5 segundos después sin actividad]
-Sistema: ⏸️  Sistema en espera - Di "topibot" para activar
-```
+### Añadir un nuevo comando
 
-## 🔧 Añadir Nuevos Comandos
-
-### Paso 1: Crear la función en `acciones.js`
+**1. Crea la función en `acciones.js`:**
 
 ```javascript
-/**
- * Tu nueva función
- */
-export function miFuncion() {
-  console.log("✨ ¡Mi función ejecutada!");
-  // Tu lógica aquí
+export function miComando() {
+  console.log("✨ ¡Mi comando ejecutado!");
 }
 ```
 
-### Paso 2: Importar en `comandos.js`
+**2. Importa en `comandos.js`:**
 
 ```javascript
-import {
-  encenderLED,
-  apagarLED,
-  miFuncion,  // ← Añade tu función aquí
-  // ... otras funciones
-} from "./acciones.js";
+import { miComando } from "./acciones.js";
 ```
 
-### Paso 3: Añadir comando al array en `comandos.js`
+**3. Añade al array de comandos:**
 
 ```javascript
 {
-  keywords: ["palabra1", "palabra2", "palabra3"],
-  action: miFuncion,
-  description: "Descripción de mi función"
+  keywords: ["mi comando", "ejecutar"],
+  action: miComando,
+  description: "Mi comando personalizado"
 }
 ```
 
-### Ejemplo completo: Añadir comando para leer temperatura
-
-**En `acciones.js`:**
-```javascript
-export function leerTemperatura() {
-  const temp = (20 + Math.random() * 10).toFixed(1);
-  console.log(`🌡️  Temperatura: ${temp}°C`);
-}
-```
-
-**En `comandos.js`:**
-```javascript
-// 1. Importar
-import { leerTemperatura } from "./acciones.js";
-
-// 2. Añadir al array comandos
-{
-  keywords: ["temperatura", "cuántos grados"],
-  action: leerTemperatura,
-  description: "Lee la temperatura actual"
-}
-```
-
-## 📁 Estructura del Proyecto
-
-```
-vosk-commands/
-├── voz_led.js                     # Script principal (reconocimiento de voz)
-├── comandos.js                    # Configuración de comandos (mapeo)
-├── acciones.js                    # Funciones/acciones del sistema
-├── package.json                   # Dependencias del proyecto
-└── vosk-model-small-es-0.42/      # Modelo de reconocimiento en español
-```
-
-### Arquitectura
-- **`voz_led.js`**: Motor de reconocimiento de voz (no necesitas modificarlo)
-- **`acciones.js`**: Define QUÉ hace cada función (lógica de negocio)
-- **`comandos.js`**: Define CUÁNDO se ejecuta (mapeo voz → acción)
-
-## 🔍 Configuración
-
-### Cambiar la palabra de activación
-
-Edita `comandos.js`:
-
-```javascript
-export const PALABRA_ACTIVACION = "mipalabra"; // Cambia "topibot" por tu palabra
-```
-
-### Cambiar el tiempo de escucha activa
-
-Edita `comandos.js`:
-
-```javascript
-export const TIEMPO_ESCUCHA_ACTIVA = 10000; // 10 segundos (en milisegundos)
-```
-
-### Otras configuraciones
-
-Puedes modificar la configuración en `voz_led.js`:
-
-```javascript
-const CONFIG = {
-  modelPath: "./vosk-model-small-es-0.42/vosk-model-small-es-0.42",
-  sampleRate: 16000,        // Frecuencia de muestreo
-  channels: 1,              // Número de canales (mono)
-  exitOnSilence: 6,         // Segundos de silencio antes de salir (0 = nunca)
-};
-```
-## 🐛 Solución de Problemas
-
-### Error: "spawn arecord ENOENT"
-
-Instala alsa-utils:
+**4. Reinicia:**
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y alsa-utils
+sudo systemctl restart topibot.service
 ```
 
-### Error: "no soundcards found"
+### Configuración
 
-Verifica que tu micrófono esté conectado:
+**Cambiar palabra de activación** (`comandos.js`):
+```javascript
+export const PALABRA_ACTIVACION = "jarvis";
+```
 
+**Cambiar timeout** (`comandos.js`):
+```javascript
+export const TIEMPO_ESCUCHA_ACTIVA = 10000; // 10 segundos
+```
+
+---
+
+## Requisitos
+
+- **Hardware**: Raspberry Pi 3 B+ o superior, Micrófono USB
+- **Software**: Node.js 16+, Python 3.7+
+- **OS**: Raspberry Pi OS (Bullseye o posterior)
+
+---
+
+## Estructura del Proyecto
+
+```
+topibot/
+├── stt_server.py          # Servidor Python/Vosk
+├── index.js               # Bot Node.js principal
+├── comandos.js            # Mapeo de comandos
+├── acciones.js            # Funciones ejecutables
+├── install.sh             # Instalador automático
+├── verificar.sh           # Script de verificación
+├── model/                 # Modelo Vosk (descargado por instalador)
+├── stt.service            # Servicio systemd Python
+├── topibot.service        # Servicio systemd Node.js
+└── docs/
+    └── GUIA_COMPLETA.md   # Documentación detallada
+```
+
+---
+
+## Documentación
+
+- **[📖 Guía Completa](./docs/GUIA_COMPLETA.md)** - Todo lo que necesitas saber
+  - Arquitectura detallada
+  - Instalación paso a paso
+  - Troubleshooting
+  - Optimización
+  - Ejemplos avanzados
+- **[📁 Estructura del Proyecto](./docs/ESTRUCTURA.md)** - Explicación de archivos
+- **[🤝 Contribuir](./CONTRIBUTING.md)** - Guía para colaboradores
+- **[📝 Changelog](./CHANGELOG.md)** - Historial de versiones
+
+---
+
+## Solución Rápida de Problemas
+
+### Servidor STT no arranca
 ```bash
-arecord -l
+sudo systemctl start stt.service
+sudo journalctl -u stt.service -n 50
 ```
 
-En WSL2 esto es normal, el código funcionará en Raspberry Pi.
+### No detecta micrófono
+```bash
+arecord -l  # Listar dispositivos
+alsamixer   # Ajustar volumen (F4 para captura)
+```
 
-## 📝 Licencia
+### Palabra de activación no funciona
+- Habla más claro y despacio
+- Ajusta volumen del micrófono
+- Verifica logs: `sudo journalctl -u topibot.service -f`
+
+**Más soluciones en la [Guía Completa](./docs/GUIA_COMPLETA.md#troubleshooting)**
+
+---
+
+## Rendimiento
+
+| Raspberry Pi 3 B+ | Valor |
+|-------------------|-------|
+| Tiempo de inicio | 10-15 seg |
+| Latencia | 2-3 seg |
+| RAM usada | ~300 MB |
+| CPU (activo) | 30-50% |
+
+---
+
+## Licencia
 
 ISC
+
+---
+
+<div align="center">
+
+**Hecho con ❤️ para Raspberry Pi**
+
+[⬆ Volver arriba](#-topibot---asistente-de-voz-offline-para-raspberry-pi)
+
+</div>
