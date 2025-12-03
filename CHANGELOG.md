@@ -3,6 +3,25 @@
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
 
+## [1.2.0] - Diciembre 2025
+
+### 🔧 Arreglado
+
+- **GPIO en kernels modernos**: Migración de `onoff` a `gpiod` nativo
+  - Soluciona error "GPIO no disponible" en Raspberry Pi con kernel reciente
+  - Usa `gpioset`/`gpioget` en lugar de `/sys/class/gpio` (deprecated)
+  - Compatible con sistema `gpiochip0` del kernel actual
+  - LED control funcional en GPIO 17 (Pin 11)
+- **Dependencias**: Eliminada biblioteca `onoff` (incompatible con nuevo GPIO)
+- **Instalador**: Añadido `gpiod` a dependencias del sistema
+
+### ✨ Añadido
+
+- **testibot.js**: Herramienta de prueba para simular comandos de voz sin micrófono
+  - Útil para debugging y desarrollo
+  - Simula palabra de activación y comandos
+  - Modo standalone sin necesidad del servidor STT
+
 ## [1.1.0] - Diciembre 2025
 
 ### 🐳 Nuevo: Soporte Python 3.13 con Docker

@@ -5,24 +5,29 @@
  * Cada función debe ser autocontenida y realizar una acción específica.
  */
 
-import { Gpio } from 'onoff';
+import { execSync } from 'child_process';
+import { existsSync } from 'fs';
 
 // ========================================
 // CONFIGURACIÓN GPIO
 // ========================================
 
 const LED_PIN = 17; // GPIO 17 (Pin físico 11)
-let led;
+const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
+let gpioAvailable = false;
 
-// Inicializar GPIO solo en Raspberry Pi
+// Verificar si gpiod está disponible
 try {
-  if (Gpio.accessible) {
-    led = new Gpio(LED_PIN, 'out');
-    console.log('✅ GPIO inicializado - LED en GPIO 17');
+  execSync('which gpioset', { stdio: 'ignore' });
+  execSync('which gpioget', { stdio: 'ignore' });
+  // Verificar que el chip GPIO existe
+  if (existsSync('/dev/gpiochip0')) {
+    gpioAvailable = true;
+    console.log('✅ GPIO inicializado - LED en GPIO 17 (usando gpiod)');
   }
 } catch (err) {
   console.log('⚠️  GPIO no disponible - Modo simulación');
-  led = null;
+  console.log('   💡 Instala gpiod con: sudo apt install gpiod');
 }
 
 // ========================================
@@ -40,8 +45,12 @@ let ledState = false;
  */
 export function encenderLED() {
   ledState = true;
-  if (led) {
-    led.writeSync(1); // Enciende GPIO
+  if (gpioAvailable) {
+    try {
+      execSync(`gpioset ${GPIO_CHIP} ${LED_PIN}=1`, { stdio: 'ignore' });
+    } catch (err) {
+      console.log('⚠️  Error al encender LED:', err.message);
+    }
   }
   console.log("💡 LED encendido");
 }
@@ -51,8 +60,12 @@ export function encenderLED() {
  */
 export function apagarLED() {
   ledState = false;
-  if (led) {
-    led.writeSync(0); // Apaga GPIO
+  if (gpioAvailable) {
+    try {
+      execSync(`gpioset ${GPIO_CHIP} ${LED_PIN}=0`, { stdio: 'ignore' });
+    } catch (err) {
+      console.log('⚠️  Error al apagar LED:', err.message);
+    }
   }
   console.log("🌑 LED apagado");
 }
@@ -69,8 +82,12 @@ export function obtenerEstadoLED() {
  */
 export function toggleLED() {
   ledState = !ledState;
-  if (led) {
-    led.writeSync(ledState ? 1 : 0);
+  if (gpioAvailable) {
+    try {
+      execSync(`gpioset ${GPIO_CHIP} ${LED_PIN}=${ledState ? 1 : 0}`, { stdio: 'ignore' });
+    } catch (err) {
+      console.log('⚠️  Error al cambiar LED:', err.message);
+    }
   }
   console.log(`🔄 LED ${ledState ? "encendido" : "apagado"}`);
 }
@@ -182,10 +199,13 @@ export function leerTemperatura() {
  * Limpia los recursos GPIO al cerrar la aplicación
  */
 export function cleanup() {
-  if (led) {
-    led.writeSync(0); // Apaga el LED
-    led.unexport(); // Libera el GPIO
-    console.log('🧹 GPIO limpiado');
+  if (gpioAvailable) {
+    try {
+      execSync(`gpioset ${GPIO_CHIP} ${LED_PIN}=0`, { stdio: 'ignore' });
+      console.log('🧹 GPIO limpiado - LED apagado');
+    } catch (err) {
+      console.log('⚠️  Error al limpiar GPIO');
+    }
   }
 }
 

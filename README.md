@@ -127,6 +127,38 @@ sudo systemctl status topibot.service
 
 ---
 
+## Control de Hardware (GPIO)
+
+TopiBot incluye control de LED mediante GPIO 17 (Pin físico 11):
+
+### 🔌 Conexión del LED
+
+```
+Raspberry Pi GPIO 17 (Pin 11) → Resistor 220-330Ω → LED (+) → LED (-) → GND (Pin 6)
+```
+
+### 💡 Comandos de LED
+
+```
+"topibot" → "encender"    # Enciende el LED
+"topibot" → "apagar"      # Apaga el LED  
+"topibot" → "alternar"    # Cambia el estado
+"topibot" → "estado"      # Muestra si está encendido/apagado
+```
+
+### 🧪 Modo de Prueba (sin micrófono)
+
+```bash
+# Simular comandos sin necesidad del servidor STT
+sudo ./testibot.js "topibot" "encender"
+sudo ./testibot.js "topibot" "apagar"
+sudo ./testibot.js "topibot" "hola"
+```
+
+> **Nota**: TopiBot usa `gpiod` nativo (instalado automáticamente). Si tu sistema usa el viejo sistema sysfs, verás "Modo simulación" pero los comandos seguirán ejecutándose sin error.
+
+---
+
 ## Desarrollo
 
 ### Añadir un nuevo comando
@@ -192,6 +224,7 @@ topibot/
 ├── index.js               # Bot Node.js principal
 ├── comandos.js            # Mapeo de comandos
 ├── acciones.js            # Funciones ejecutables
+├── testibot.js            # 🧪 Herramienta de prueba (sin micrófono)
 ├── install.sh             # Instalador automático
 ├── verificar.sh           # Script de verificación
 ├── Dockerfile             # Contenedor Python 3.11 (para Python 3.13)
@@ -248,6 +281,22 @@ alsamixer   # Ajustar volumen (F4 para captura)
 - Habla más claro y despacio
 - Ajusta volumen del micrófono
 - Verifica logs: `sudo journalctl -u topibot.service -f`
+
+### GPIO no funciona (LED no enciende)
+```bash
+# Verificar que gpiod está instalado
+which gpioset
+
+# Probar manualmente
+gpioset gpiochip0 17=1  # Encender
+gpioset gpiochip0 17=0  # Apagar
+
+# Si falla, instalar gpiod
+sudo apt install -y gpiod
+
+# Probar con testibot
+sudo ./testibot.js "topibot" "encender"
+```
 
 **Más soluciones en la [Guía Completa](./docs/GUIA_COMPLETA.md#troubleshooting)**
 

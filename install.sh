@@ -185,7 +185,7 @@ fi
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils gpiod
 
 # Crear virtual environment
 echo ""
