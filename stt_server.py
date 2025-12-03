@@ -29,9 +29,9 @@ except Exception as e:
     print(f"💡 Path del modelo: {model_path}", file=sys.stderr)
     sys.exit(1)
 
-# Detectar micrófono USB automáticamente
+# Detectar micrófono USB automáticamente y su sample rate compatible
 def find_usb_microphone():
-    """Encuentra el primer micrófono USB disponible"""
+    """Encuentra el primer micrófono USB disponible y su sample rate compatible"""
     devices = sd.query_devices()
     print("\n🎤 Dispositivos de audio disponibles:")
     for i, device in enumerate(devices):
@@ -42,21 +42,44 @@ def find_usb_microphone():
         name = device['name'].lower()
         if device['max_input_channels'] > 0 and ('usb' in name or 'pnp' in name):
             print(f"\n✅ Micrófono USB detectado: [{i}] {device['name']}")
-            return i
+            
+            # Probar sample rates comunes: 16000 (Vosk preferido), 44100, 48000
+            for rate in [16000, 44100, 48000, 8000]:
+                try:
+                    sd.check_input_settings(device=i, samplerate=rate)
+                    print(f"✅ Sample rate compatible: {rate} Hz")
+                    return i, rate
+                except Exception:
+                    continue
+            
+            print(f"⚠️  No se encontró sample rate compatible para este dispositivo")
+            return i, 16000  # Intentar con 16000 de todas formas
     
     # Si no encuentra USB, usar el primer dispositivo con entrada
     for i, device in enumerate(devices):
         if device['max_input_channels'] > 0:
             print(f"\n⚠️  Usando primer dispositivo con entrada: [{i}] {device['name']}")
-            return i
+            for rate in [16000, 44100, 48000, 8000]:
+                try:
+                    sd.check_input_settings(device=i, samplerate=rate)
+                    print(f"✅ Sample rate compatible: {rate} Hz")
+                    return i, rate
+                except Exception:
+                    continue
+            return i, 16000
     
     print("\n❌ ERROR: No se encontró ningún dispositivo de entrada de audio")
-    return None
+    return None, None
 
-# Detectar dispositivo de audio
-audio_device = find_usb_microphone()
+# Detectar dispositivo de audio y sample rate
+audio_device, sample_rate = find_usb_microphone()
 if audio_device is None:
     sys.exit(1)
+
+# Recrear el recognizer con el sample rate correcto si es diferente de 16000
+if sample_rate != 16000:
+    print(f"⚙️  Recreando recognizer con sample rate {sample_rate} Hz...")
+    recognizer = KaldiRecognizer(model, sample_rate)
 
 q = queue.Queue()
 
@@ -67,15 +90,18 @@ def callback(indata, frames, time, status):
 def listen():
     recognizer.Reset()
     try:
+        # Calcular blocksize apropiado para el sample rate
+        blocksize = int(sample_rate * 0.5)  # 0.5 segundos de buffer
+        
         with sd.RawInputStream(
-            samplerate=16000,
-            blocksize=8000,
+            samplerate=sample_rate,
+            blocksize=blocksize,
             dtype="int16",
             channels=1,
             callback=callback,
             device=audio_device,  # Usar el dispositivo detectado
         ):
-            print("⏺ Escuchando…")
+            print(f"⏺ Escuchando en {sample_rate} Hz...")
             while True:
                 data = q.get()
                 if recognizer.AcceptWaveform(data):
