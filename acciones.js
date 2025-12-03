@@ -5,6 +5,31 @@
  * Cada función debe ser autocontenida y realizar una acción específica.
  */
 
+import { execSync } from 'child_process';
+import { existsSync } from 'fs';
+
+// ========================================
+// CONFIGURACIÓN GPIO
+// ========================================
+
+const LED_PIN = 17; // GPIO 17 (Pin físico 11)
+const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
+let gpioAvailable = false;
+
+// Verificar si gpiod está disponible
+try {
+  execSync('which gpioset', { stdio: 'ignore' });
+  execSync('which gpioget', { stdio: 'ignore' });
+  // Verificar que el chip GPIO existe
+  if (existsSync('/dev/gpiochip0')) {
+    gpioAvailable = true;
+    console.log('✅ GPIO inicializado - LED en GPIO 17 (usando gpiod)');
+  }
+} catch (err) {
+  console.log('⚠️  GPIO no disponible - Modo simulación');
+  console.log('   💡 Instala gpiod con: sudo apt install gpiod');
+}
+
 // ========================================
 // ESTADO GLOBAL
 // ========================================
@@ -20,6 +45,13 @@ let ledState = false;
  */
 export function encenderLED() {
   ledState = true;
+  if (gpioAvailable) {
+    try {
+      execSync(`gpioset -c ${GPIO_CHIP} ${LED_PIN}=1 &`, { shell: true });
+    } catch (err) {
+      console.log('⚠️  Error al encender LED:', err.message);
+    }
+  }
   console.log("💡 LED encendido");
 }
 
@@ -28,6 +60,16 @@ export function encenderLED() {
  */
 export function apagarLED() {
   ledState = false;
+  if (gpioAvailable) {
+    try {
+      // Matar procesos gpioset anteriores
+      execSync('pkill gpioset 2>/dev/null || true', { shell: true });
+      // Establecer nuevo estado
+      execSync(`gpioset -c ${GPIO_CHIP} ${LED_PIN}=0 &`, { shell: true });
+    } catch (err) {
+      console.log('⚠️  Error al apagar LED:', err.message);
+    }
+  }
   console.log("🌑 LED apagado");
 }
 
@@ -43,6 +85,16 @@ export function obtenerEstadoLED() {
  */
 export function toggleLED() {
   ledState = !ledState;
+  if (gpioAvailable) {
+    try {
+      // Matar procesos anteriores
+      execSync('pkill gpioset 2>/dev/null || true', { shell: true });
+      // Establecer nuevo estado
+      execSync(`gpioset -c ${GPIO_CHIP} ${LED_PIN}=${ledState ? 1 : 0} &`, { shell: true });
+    } catch (err) {
+      console.log('⚠️  Error al cambiar LED:', err.message);
+    }
+  }
   console.log(`🔄 LED ${ledState ? "encendido" : "apagado"}`);
 }
 
@@ -144,3 +196,27 @@ export function leerTemperatura() {
   const temperaturaSimulada = (20 + Math.random() * 10).toFixed(1);
   console.log(`🌡️  Temperatura: ${temperaturaSimulada}°C`);
 }
+
+// ========================================
+// LIMPIEZA AL SALIR
+// ========================================
+
+/**
+ * Limpia los recursos GPIO al cerrar la aplicación
+ */
+export function cleanup() {
+  if (gpioAvailable) {
+    try {
+      execSync('pkill gpioset 2>/dev/null || true', { shell: true });
+      console.log('🧹 GPIO limpiado');
+    } catch (err) {
+      // Ignorar errores
+    }
+  }
+}
+
+// Manejar cierre de aplicación
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit();
+});

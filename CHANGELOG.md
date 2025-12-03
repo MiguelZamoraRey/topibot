@@ -1,6 +1,58 @@
+
 # 📝 Changelog
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
+
+## [1.2.0] - Diciembre 2025
+
+### 🔧 Arreglado
+
+- **GPIO en kernels modernos**: Migración de `onoff` a `gpiod` nativo
+  - Soluciona error "GPIO no disponible" en Raspberry Pi con kernel reciente
+  - Usa `gpioset`/`gpioget` en lugar de `/sys/class/gpio` (deprecated)
+  - Compatible con sistema `gpiochip0` del kernel actual
+  - LED control funcional en GPIO 17 (Pin 11)
+- **Dependencias**: Eliminada biblioteca `onoff` (incompatible con nuevo GPIO)
+- **Instalador**: Añadido `gpiod` a dependencias del sistema
+
+### ✨ Añadido
+
+- **testibot.js**: Herramienta de prueba para simular comandos de voz sin micrófono
+  - Útil para debugging y desarrollo
+  - Simula palabra de activación y comandos
+  - Modo standalone sin necesidad del servidor STT
+
+## [1.1.0] - Diciembre 2025
+
+### 🐳 Nuevo: Soporte Python 3.13 con Docker
+
+- **Compatibilidad Python 3.13**: Detección automática de Python 3.13 (incompatible con vosk)
+- **Solución Docker**: Instalación automática de Docker con contenedor Python 3.11
+- **Instalación inteligente**: El script detecta la versión de Python y elige:
+  - Python 3.11 o anterior → Virtual environment tradicional
+  - Python 3.13+ → Contenedor Docker con Python 3.11
+- **Nuevo archivo**: `Dockerfile` para construcción de imagen con Python 3.11
+- **Nuevo archivo**: `stt-docker.service` para gestión del contenedor
+- **Nuevo archivo**: `requirements-stt.txt` con dependencias Python del STT
+
+### 🔧 Arreglado
+
+- **Instalación Docker en Trixie**: Usa repo de Bookworm (Trixie no tiene repo oficial aún)
+  - Instalación manual de Docker con repositorio compatible
+  - Soluciona error "The repository does not have a Release file"
+- **Path del modelo**: `stt_server.py` ahora usa path relativo en lugar de hardcodeado
+  - Funciona en cualquier directorio de instalación
+  - Mejores mensajes de error al cargar el modelo
+- **Dependencias Node.js**: Eliminadas dependencias nativas problemáticas
+  - Removido: `vosk`, `mic`, `ffi-napi` (causaban errores de compilación)
+  - Mantenido: `axios` (comunicación HTTP con servidor STT)
+- **Compatibilidad**: Soporte para Raspberry Pi OS Trixie (Python 3.13 por defecto)
+
+### ⚡ Mejorado
+
+- **Instalador**: Detección automática de versión de Python
+- **Logs**: Mejores mensajes de error en servidor STT
+- **Rendimiento**: Sin overhead de compilación de dependencias nativas en Node.js
 
 ## [1.0.1] - Diciembre 2025
 

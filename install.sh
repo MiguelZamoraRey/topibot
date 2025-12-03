@@ -3,6 +3,12 @@
 
 set -e  # Salir si hay algún error
 
+# Detectar modo automático
+AUTO_YES=false
+if [[ "$1" == "-y" || "$1" == "--yes" ]]; then
+    AUTO_YES=true
+fi
+
 # Detectar directorio del proyecto
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 USER_HOME="$HOME"
@@ -149,7 +155,6 @@ echo "🔍 Verificando Python 3..."
 # Buscar cualquier versión de Python 3
 PYTHON_CMD=""
 PYTHON_VER=""
-PYTHON_NEEDS_FIX=false
 
 for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; do
     if command -v $py_version &> /dev/null; then
@@ -161,10 +166,8 @@ for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; 
             PYTHON_CMD=$py_version
             PYTHON_VER=$PY_VER
             
-            # Python 3.13+ necesita fix con execstack
             if [ "$PY_MINOR" -ge 13 ]; then
-                PYTHON_NEEDS_FIX=true
-                print_warning "Python $PY_VER detectado - Requiere fix para libvosk.so"
+                print_warning "Python $PY_VER detectado - Usaremos vosk desde GitHub"
             else
                 print_status "Python $PY_VER ($py_version) - Compatible ✓"
             fi
@@ -182,7 +185,7 @@ fi
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils gpiod
 
 # Crear virtual environment
 echo ""
@@ -192,54 +195,85 @@ if [ -d "$PROJECT_DIR/venv" ]; then
     rm -rf "$PROJECT_DIR/venv"
 fi
 
-$PYTHON_CMD -m venv "$PROJECT_DIR/venv"
-print_status "Virtual environment creado con $PYTHON_CMD"
-
-# Instalar dependencias Python en venv
-echo ""
-echo "📦 Instalando dependencias Python en venv..."
-"$PROJECT_DIR/venv/bin/pip" install --upgrade pip
-
-# Para Python 3.13+, usar vosk 0.3.45 que tiene mejor compatibilidad
-if [ "$PYTHON_NEEDS_FIX" = true ]; then
-    print_warning "Instalando vosk 0.3.45 (compatible con Python 3.13)"
-    "$PROJECT_DIR/venv/bin/pip" install vosk==0.3.45 sounddevice flask
-else
-    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+# Detectar si necesitamos Docker (Python 3.13+)
+USE_DOCKER=false
+PY_MINOR=$(echo $PYTHON_VER | cut -d. -f2)
+if [ "$PY_MINOR" -ge 13 ]; then
+    USE_DOCKER=true
+    print_warning "Python 3.13 detectado - Usaremos Docker con Python 3.11"
 fi
 
-print_status "Dependencias Python instaladas en venv"
-
-# Aplicar fix para Python 3.13+ si es necesario
-if [ "$PYTHON_NEEDS_FIX" = true ]; then
-    echo ""
-    echo "🔧 Aplicando workarounds para Python $PYTHON_VER con libvosk.so..."
-    
-    # Fix 1: Deshabilitar ASLR (Address Space Layout Randomization)
-    CURRENT_ASLR=$(cat /proc/sys/kernel/randomize_va_space 2>/dev/null || echo "2")
-    if [ "$CURRENT_ASLR" != "0" ]; then
-        echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-        print_status "ASLR deshabilitado temporalmente"
+if [ "$USE_DOCKER" = true ]; then
+    # Instalar Docker si no está
+    if ! command -v docker &> /dev/null; then
+        echo ""
+        echo "🐳 Instalando Docker..."
         
-        # Hacer permanente en /etc/sysctl.conf
-        if ! sudo grep -q "^kernel.randomize_va_space" /etc/sysctl.conf 2>/dev/null; then
-            echo "kernel.randomize_va_space = 0" | sudo tee -a /etc/sysctl.conf > /dev/null
-            print_status "Fix permanente aplicado en /etc/sysctl.conf"
-        fi
-    fi
-    
-    LIBVOSK_PATH=$(find "$PROJECT_DIR/venv" -name "libvosk.so" 2>/dev/null | head -1)
-    
-    if [ -n "$LIBVOSK_PATH" ]; then
-        # Fix 2: Intentar con execstack si está disponible
-        if command -v execstack &> /dev/null; then
-            sudo execstack -c "$LIBVOSK_PATH" 2>/dev/null && print_status "execstack aplicado" || true
-        fi
+        # Limpiar repos antiguos de Docker
+        sudo rm -f /etc/apt/sources.list.d/docker.list
         
-        print_status "Workarounds aplicados para Python 3.13"
+        # Instalar Docker manualmente (get.docker.com falla en Trixie)
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl gnupg
+        sudo install -m 0755 -d /etc/apt/keyrings
+        
+        # Limpiar keyring antiguo
+        sudo rm -f /etc/apt/keyrings/docker.gpg
+        
+        # Usar repo de Bookworm (Trixie no tiene repo oficial aún)
+        curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+          bookworm stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        
+        sudo usermod -aG docker $CURRENT_USER
+        print_status "Docker instalado (requiere re-login para permisos)"
     else
-        print_warning "libvosk.so no encontrado aún, fix se aplicará al iniciar"
+        print_status "Docker ya instalado"
     fi
+    
+    # Construir imagen Docker solo si no existe
+    echo ""
+    if sudo docker image inspect topibot-stt:latest >/dev/null 2>&1; then
+        print_status "Imagen Docker ya existe"
+        REBUILD="n"
+        if [ "$AUTO_YES" = true ]; then
+            print_warning "Modo automático: usando imagen existente"
+        else
+            read -p "¿Reconstruir imagen Docker? (s/N): " -n 1 -r
+            echo ""
+            REBUILD="$REPLY"
+        fi
+        if [[ $REBUILD =~ ^[SsYy]$ ]]; then
+            echo "🐳 Reconstruyendo imagen Docker con Python 3.11..."
+            cd "$PROJECT_DIR"
+            sudo docker build -t topibot-stt:latest .
+            print_status "Imagen Docker reconstruida"
+        fi
+    else
+        echo "🐳 Construyendo imagen Docker con Python 3.11..."
+        cd "$PROJECT_DIR"
+        sudo docker build -t topibot-stt:latest .
+        print_status "Imagen Docker construida"
+    fi
+    
+else
+    # Instalación tradicional con venv
+    $PYTHON_CMD -m venv "$PROJECT_DIR/venv"
+    print_status "Virtual environment creado con $PYTHON_CMD"
+
+    # Instalar dependencias Python en venv
+    echo ""
+    echo "📦 Instalando dependencias Python en venv..."
+    "$PROJECT_DIR/venv/bin/pip" install --upgrade pip
+    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+    print_status "Dependencias Python instaladas en venv"
 fi
 
 # Instalar dependencias Node.js
@@ -290,16 +324,21 @@ fi
 echo ""
 echo "⚙️  Configurando servicios systemd..."
 
-# Obtener la ruta del Python del venv
-VENV_PYTHON="$PROJECT_DIR/venv/bin/python3"
+if [ "$USE_DOCKER" = true ]; then
+    # Usar servicio Docker
+    sed "s|PROJECT_DIR_PLACEHOLDER|$PROJECT_DIR|g" "$PROJECT_DIR/stt-docker.service" > /tmp/stt.service.tmp
+    print_status "Usando servicio STT con Docker (Python 3.11)"
+else
+    # Usar servicio tradicional con venv
+    VENV_PYTHON="$PROJECT_DIR/venv/bin/python3"
+    sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g; s|/usr/bin/python3.8|$VENV_PYTHON|g; s|ExecStart=/home/pi/topibot/venv/bin/python3|ExecStart=$VENV_PYTHON|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+fi
 
-# Crear servicios temporales con rutas correctas
-sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g; s|/usr/bin/python3.8|$VENV_PYTHON|g; s|ExecStart=/home/pi/topibot/venv/bin/python3|ExecStart=$VENV_PYTHON|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+# Servicio Node.js (siempre el mismo)
 sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g" "$PROJECT_DIR/topibot.service" > /tmp/topibot.service.tmp
 
 # Si usamos nvm, agregar configuración de entorno
 if [ -f "$USER_HOME/.nvm/nvm.sh" ]; then
-    # Agregar variables de entorno de nvm al servicio de Node.js
     sed -i "/\[Service\]/a Environment=\"NVM_DIR=$USER_HOME/.nvm\"" /tmp/topibot.service.tmp
 fi
 
@@ -310,27 +349,33 @@ rm /tmp/stt.service.tmp /tmp/topibot.service.tmp
 
 sudo systemctl daemon-reload
 
-print_status "Servicios systemd configurados con Node.js: $NODE_PATH"
+print_status "Servicios systemd configurados"
 
 # Habilitar servicios para inicio automático
 echo ""
 echo "⚙️  Configurando inicio automático..."
-read -p "¿Deseas que TopiBot se inicie automáticamente al arrancar? (S/n): " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+if [ "$AUTO_YES" = true ]; then
+    print_warning "Modo automático: habilitando servicios para inicio automático"
     sudo systemctl enable stt.service
     sudo systemctl enable topibot.service
     print_status "✅ Servicios habilitados - TopiBot arrancará automáticamente en cada reboot"
 else
-    print_warning "Servicios NO habilitados - Deberás iniciarlos manualmente"
-    echo "   Para habilitarlos después: sudo systemctl enable stt.service topibot.service"
+    read -p "¿Deseas que TopiBot se inicie automáticamente al arrancar? (S/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        sudo systemctl enable stt.service
+        sudo systemctl enable topibot.service
+        print_status "✅ Servicios habilitados - TopiBot arrancará automáticamente en cada reboot"
+    else
+        print_warning "Servicios NO habilitados - Deberás iniciarlos manualmente"
+        echo "   Para habilitarlos después: sudo systemctl enable stt.service topibot.service"
+    fi
 fi
 
 # Preguntar si iniciar servicios ahora
 echo ""
-read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[SsYy]$ ]]; then
+if [ "$AUTO_YES" = true ]; then
+    print_warning "Modo automático: iniciando servicios"
     echo "🚀 Iniciando servidor STT..."
     sudo systemctl start stt.service
     sleep 3
@@ -346,6 +391,26 @@ if [[ $REPLY =~ ^[SsYy]$ ]]; then
     sudo systemctl status stt.service --no-pager -l | head -n 4
     echo ""
     sudo systemctl status topibot.service --no-pager -l | head -n 4
+else
+    read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[SsYy]$ ]]; then
+        echo "🚀 Iniciando servidor STT..."
+        sudo systemctl start stt.service
+        sleep 3
+        
+        echo "🚀 Iniciando TopiBot..."
+        sudo systemctl start topibot.service
+        sleep 2
+        
+        print_status "Servicios iniciados"
+        
+        echo ""
+        echo "📊 Estado de los servicios:"
+        sudo systemctl status stt.service --no-pager -l | head -n 4
+        echo ""
+        sudo systemctl status topibot.service --no-pager -l | head -n 4
+    fi
 fi
 
 # Resumen final
