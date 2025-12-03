@@ -13,7 +13,7 @@ import { existsSync } from 'fs';
 // ========================================
 
 const LED_PIN = 17; // GPIO 17 (Pin físico 11)
-const BUZZER_PIN = 27; // GPIO 27 (Pin físico 13) - Ajusta según tu conexión
+const BUZZER_PIN = 22; // GPIO 22 (Pin físico 15)
 const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
 let gpioAvailable = false;
 
@@ -24,7 +24,7 @@ try {
   // Verificar que el chip GPIO existe
   if (existsSync('/dev/gpiochip0')) {
     gpioAvailable = true;
-    console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer en GPIO 27');
+    console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer en GPIO 22');
   }
 } catch (err) {
   console.log('⚠️  GPIO no disponible - Modo simulación');
