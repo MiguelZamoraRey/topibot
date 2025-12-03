@@ -199,40 +199,46 @@ print_status "Virtual environment creado con $PYTHON_CMD"
 echo ""
 echo "📦 Instalando dependencias Python en venv..."
 "$PROJECT_DIR/venv/bin/pip" install --upgrade pip
-"$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+
+# Para Python 3.13+, usar vosk 0.3.45 que tiene mejor compatibilidad
+if [ "$PYTHON_NEEDS_FIX" = true ]; then
+    print_warning "Instalando vosk 0.3.45 (compatible con Python 3.13)"
+    "$PROJECT_DIR/venv/bin/pip" install vosk==0.3.45 sounddevice flask
+else
+    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+fi
 
 print_status "Dependencias Python instaladas en venv"
 
 # Aplicar fix para Python 3.13+ si es necesario
 if [ "$PYTHON_NEEDS_FIX" = true ]; then
     echo ""
-    echo "🔧 Aplicando workaround para Python $PYTHON_VER con libvosk.so..."
+    echo "🔧 Aplicando workarounds para Python $PYTHON_VER con libvosk.so..."
+    
+    # Fix 1: Deshabilitar ASLR (Address Space Layout Randomization)
+    CURRENT_ASLR=$(cat /proc/sys/kernel/randomize_va_space 2>/dev/null || echo "2")
+    if [ "$CURRENT_ASLR" != "0" ]; then
+        echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
+        print_status "ASLR deshabilitado temporalmente"
+        
+        # Hacer permanente en /etc/sysctl.conf
+        if ! sudo grep -q "^kernel.randomize_va_space" /etc/sysctl.conf 2>/dev/null; then
+            echo "kernel.randomize_va_space = 0" | sudo tee -a /etc/sysctl.conf > /dev/null
+            print_status "Fix permanente aplicado en /etc/sysctl.conf"
+        fi
+    fi
     
     LIBVOSK_PATH=$(find "$PROJECT_DIR/venv" -name "libvosk.so" 2>/dev/null | head -1)
     
     if [ -n "$LIBVOSK_PATH" ]; then
-        # Intentar con execstack si está disponible
+        # Fix 2: Intentar con execstack si está disponible
         if command -v execstack &> /dev/null; then
-            sudo execstack -c "$LIBVOSK_PATH"
-            print_status "Fix aplicado con execstack ✓"
-        else
-            # Workaround alternativo: cambiar permisos
-            print_warning "execstack no disponible, usando workaround alternativo..."
-            
-            # Crear wrapper script que deshabilita la protección
-            cat > "$PROJECT_DIR/stt_wrapper.sh" << 'EOF'
-#!/bin/bash
-export PYTHON_GIL=0
-export LD_PRELOAD=""
-exec "$@"
-EOF
-            chmod +x "$PROJECT_DIR/stt_wrapper.sh"
-            
-            print_status "Workaround aplicado (puede que requiera reinicio del sistema)"
-            print_warning "Si los servicios fallan, ejecuta: sudo sysctl -w kernel.exec-shield=0"
+            sudo execstack -c "$LIBVOSK_PATH" 2>/dev/null && print_status "execstack aplicado" || true
         fi
+        
+        print_status "Workarounds aplicados para Python 3.13"
     else
-        print_warning "libvosk.so no encontrado aún, se aplicará fix al iniciar servicios"
+        print_warning "libvosk.so no encontrado aún, fix se aplicará al iniciar"
     fi
 fi
 
@@ -325,25 +331,6 @@ echo ""
 read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[SsYy]$ ]]; then
-    # Aplicar fix para Python 3.13 si es necesario
-    if [ "$PYTHON_NEEDS_FIX" = true ]; then
-        echo ""
-        echo "🔧 Aplicando fix del kernel para Python 3.13..."
-        
-        # Deshabilitar ASLR para que libvosk.so funcione
-        CURRENT_ASLR=$(cat /proc/sys/kernel/randomize_va_space 2>/dev/null || echo "2")
-        if [ "$CURRENT_ASLR" != "0" ]; then
-            echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-            print_status "ASLR deshabilitado temporalmente"
-            
-            # Hacer permanente
-            if ! sudo grep -q "kernel.randomize_va_space" /etc/sysctl.conf 2>/dev/null; then
-                echo "kernel.randomize_va_space = 0" | sudo tee -a /etc/sysctl.conf > /dev/null
-                print_status "Fix permanente aplicado (sobrevive reinicios)"
-            fi
-        fi
-    fi
-    
     echo "🚀 Iniciando servidor STT..."
     sudo systemctl start stt.service
     sleep 3
