@@ -149,7 +149,6 @@ echo "🔍 Verificando Python 3..."
 # Buscar cualquier versión de Python 3
 PYTHON_CMD=""
 PYTHON_VER=""
-PYTHON_NEEDS_FIX=false
 
 for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; do
     if command -v $py_version &> /dev/null; then
@@ -158,28 +157,15 @@ for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; 
         PY_MINOR=$(echo $PY_VER | cut -d. -f2)
         
         if [ "$PY_MAJOR" -eq 3 ]; then
-            # Python 3.13+ NO es compatible con vosk, instalar Python 3.11
+            PYTHON_CMD=$py_version
+            PYTHON_VER=$PY_VER
+            
             if [ "$PY_MINOR" -ge 13 ]; then
-                print_warning "⚠️  Python $PY_VER detectado - NO compatible con vosk"
-                echo "📦 Instalando Python 3.11 (compatible con vosk)..."
-                sudo apt update
-                sudo apt install -y python3.11 python3.11-venv python3.11-dev
-                
-                if command -v python3.11 &> /dev/null; then
-                    PYTHON_CMD="python3.11"
-                    PYTHON_VER="3.11"
-                    print_status "✅ Python 3.11 instalado correctamente"
-                    break
-                else
-                    print_error "No se pudo instalar Python 3.11"
-                    exit 1
-                fi
+                print_warning "Python $PY_VER detectado - Usaremos vosk desde GitHub"
             else
-                PYTHON_CMD=$py_version
-                PYTHON_VER=$PY_VER
                 print_status "Python $PY_VER ($py_version) - Compatible ✓"
-                break
             fi
+            break
         fi
     fi
 done
