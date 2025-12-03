@@ -118,10 +118,30 @@ fi
 # Verificar Python
 echo ""
 echo "🔍 Verificando Python 3..."
-if command -v python3 &> /dev/null; then
-    print_status "Python $(python3 --version) - Disponible ✓"
-else
-    print_error "Python 3 no está instalado"
+
+# Buscar Python 3.8, 3.11 o 3.12 (evitar 3.13 por problemas con libvosk.so)
+PYTHON_CMD=""
+for py_version in python3.8 python3.11 python3.12 python3.10 python3.9 python3; do
+    if command -v $py_version &> /dev/null; then
+        PY_VER=$($py_version --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
+        PY_MAJOR=$(echo $PY_VER | cut -d. -f1)
+        PY_MINOR=$(echo $PY_VER | cut -d. -f2)
+        
+        # Evitar Python 3.13 por incompatibilidad con libvosk.so
+        if [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 13 ]; then
+            PYTHON_CMD=$py_version
+            print_status "Python $PY_VER ($py_version) - Compatible ✓"
+            break
+        elif [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -ge 13 ]; then
+            print_warning "Python $PY_VER tiene problemas con libvosk.so, buscando otra versión..."
+        fi
+    fi
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    print_error "No se encontró una versión compatible de Python 3"
+    print_error "Python 3.13+ tiene problemas con libvosk.so"
+    echo "Instala Python 3.8-3.12: sudo apt install python3.8 python3.8-venv python3.8-dev"
     exit 1
 fi
 
@@ -129,18 +149,18 @@ fi
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils python3.8 python3.8-venv python3.8-dev 2>/dev/null || true
 
 # Crear virtual environment
 echo ""
-echo "🐍 Creando entorno virtual Python..."
+echo "🐍 Creando entorno virtual Python con $PYTHON_CMD..."
 if [ -d "$PROJECT_DIR/venv" ]; then
     print_warning "Virtual environment ya existe, recreando..."
     rm -rf "$PROJECT_DIR/venv"
 fi
 
-python3 -m venv "$PROJECT_DIR/venv"
-print_status "Virtual environment creado"
+$PYTHON_CMD -m venv "$PROJECT_DIR/venv"
+print_status "Virtual environment creado con $PYTHON_CMD"
 
 # Instalar dependencias Python en venv
 echo ""
@@ -198,8 +218,11 @@ fi
 echo ""
 echo "⚙️  Configurando servicios systemd..."
 
+# Obtener la ruta del Python del venv
+VENV_PYTHON="$PROJECT_DIR/venv/bin/python3"
+
 # Crear servicios temporales con rutas correctas
-sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g; s|/usr/bin/python3.8|$VENV_PYTHON|g; s|ExecStart=/home/pi/topibot/venv/bin/python3|ExecStart=$VENV_PYTHON|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
 sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g" "$PROJECT_DIR/topibot.service" > /tmp/topibot.service.tmp
 
 # Si usamos nvm, agregar configuración de entorno

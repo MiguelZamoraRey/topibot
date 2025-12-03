@@ -3,9 +3,11 @@ Description=Servidor Vosk Speech-to-Text
 After=network.target sound.target
 
 [Service]
-User=pi
-WorkingDirectory=/home/pi/topibot
-ExecStart=/home/pi/topibot/venv/bin/python3 /home/pi/topibot/stt_server.py
+User=ainhur
+WorkingDirectory=/home/ainhur/Documents/topibot
+ExecStart=/home/ainhur/Documents/topibot/venv/bin/python3 /home/ainhur/Documents/topibot/stt_server.py
+Restart=always
+RestartSec=2
 Restart=always
 RestartSec=2
 
