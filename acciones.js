@@ -48,11 +48,9 @@ export function encenderLED() {
   if (gpioAvailable) {
     try {
       // Matar procesos gpioset anteriores
-      execSync('pkill -9 gpioset 2>/dev/null || true', { shell: true });
-      // Pequeña pausa para que se libere el GPIO
-      execSync('sleep 0.1', { shell: true });
-      // Establecer nuevo estado
-      execSync(`gpioset -c ${GPIO_CHIP} ${LED_PIN}=1 &`, { shell: true });
+      execSync('pkill -9 gpioset 2>/dev/null || true');
+      // Establecer nuevo estado en background
+      execSync(`nohup gpioset -c ${GPIO_CHIP} ${LED_PIN}=1 > /dev/null 2>&1 &`);
     } catch (err) {
       console.log('⚠️  Error al encender LED:', err.message);
     }
@@ -68,11 +66,9 @@ export function apagarLED() {
   if (gpioAvailable) {
     try {
       // Matar procesos gpioset anteriores
-      execSync('pkill -9 gpioset 2>/dev/null || true', { shell: true });
-      // Pequeña pausa para que se libere el GPIO
-      execSync('sleep 0.1', { shell: true });
-      // Establecer nuevo estado
-      execSync(`gpioset -c ${GPIO_CHIP} ${LED_PIN}=0 &`, { shell: true });
+      execSync('pkill -9 gpioset 2>/dev/null || true');
+      // Establecer nuevo estado en background
+      execSync(`nohup gpioset -c ${GPIO_CHIP} ${LED_PIN}=0 > /dev/null 2>&1 &`);
     } catch (err) {
       console.log('⚠️  Error al apagar LED:', err.message);
     }
@@ -95,11 +91,9 @@ export function toggleLED() {
   if (gpioAvailable) {
     try {
       // Matar procesos anteriores
-      execSync('pkill -9 gpioset 2>/dev/null || true', { shell: true });
-      // Pequeña pausa para que se libere el GPIO
-      execSync('sleep 0.1', { shell: true });
-      // Establecer nuevo estado
-      execSync(`gpioset -c ${GPIO_CHIP} ${LED_PIN}=${ledState ? 1 : 0} &`, { shell: true });
+      execSync('pkill -9 gpioset 2>/dev/null || true');
+      // Establecer nuevo estado en background
+      execSync(`nohup gpioset -c ${GPIO_CHIP} ${LED_PIN}=${ledState ? 1 : 0} > /dev/null 2>&1 &`);
     } catch (err) {
       console.log('⚠️  Error al cambiar LED:', err.message);
     }
