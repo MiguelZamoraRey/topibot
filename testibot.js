@@ -3,8 +3,8 @@
  * TestiBot - Simulador de comandos de voz para testing
  * 
  * Uso:
- *   ./testibot.js "topibot"
- *   ./testibot.js "topibot" "encender"
+ *   ./testibot.js "computadora"
+ *   ./testibot.js "computadora" "encender"
  *   ./testibot.js "hola"
  */
 
@@ -35,10 +35,10 @@ if (args.length === 0) {
   console.log("❌ Error: Debes proporcionar al menos un texto para simular");
   console.log("");
   console.log("📋 Ejemplos de uso:");
-  console.log("  ./testibot.js \"topibot\"");
-  console.log("  ./testibot.js \"topibot\" \"encender\"");
+  console.log("  ./testibot.js \"computadora\"");
+  console.log("  ./testibot.js \"computadora\" \"encender\"");
   console.log("  ./testibot.js \"hola\"");
-  console.log("  ./testibot.js \"topibot\" \"qué hora es\"");
+  console.log("  ./testibot.js \"computadora\" \"qué hora es\"");
   console.log("");
   process.exit(1);
 }
@@ -54,7 +54,7 @@ function activarSistema() {
   if (timeoutId) clearTimeout(timeoutId);
   timeoutId = setTimeout(() => {
     sistemaActivo = false;
-    console.log("⏸️  Sistema DESACTIVADO - Di 'topibot' para activar");
+    console.log("⏸️  Sistema DESACTIVADO - Di 'computadora' para activar");
   }, TIEMPO_ESCUCHA_ACTIVA);
 }
 
@@ -82,10 +82,10 @@ function procesarTextoSimulado(texto) {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       sistemaActivo = false;
-      console.log("⏸️  Sistema DESACTIVADO - Di 'topibot' para activar");
+      console.log("⏸️  Sistema DESACTIVADO - Di 'computadora' para activar");
     }, TIEMPO_ESCUCHA_ACTIVA);
   } else {
-    console.log("⏸️  Sistema inactivo - Di 'topibot' primero para activar");
+    console.log("⏸️  Sistema inactivo - Di 'computadora' primero para activar");
   }
 }
 
