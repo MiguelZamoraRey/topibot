@@ -3,6 +3,12 @@
 
 set -e  # Salir si hay algún error
 
+# Detectar modo automático
+AUTO_YES=false
+if [[ "$1" == "-y" || "$1" == "--yes" ]]; then
+    AUTO_YES=true
+fi
+
 # Detectar directorio del proyecto
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 USER_HOME="$HOME"
@@ -232,12 +238,30 @@ if [ "$USE_DOCKER" = true ]; then
         print_status "Docker ya instalado"
     fi
     
-    # Construir imagen Docker
+    # Construir imagen Docker solo si no existe
     echo ""
-    echo "🐳 Construyendo imagen Docker con Python 3.11..."
-    cd "$PROJECT_DIR"
-    sudo docker build -t topibot-stt:latest .
-    print_status "Imagen Docker construida"
+    if sudo docker image inspect topibot-stt:latest >/dev/null 2>&1; then
+        print_status "Imagen Docker ya existe"
+        REBUILD="n"
+        if [ "$AUTO_YES" = true ]; then
+            print_warning "Modo automático: usando imagen existente"
+        else
+            read -p "¿Reconstruir imagen Docker? (s/N): " -n 1 -r
+            echo ""
+            REBUILD="$REPLY"
+        fi
+        if [[ $REBUILD =~ ^[SsYy]$ ]]; then
+            echo "🐳 Reconstruyendo imagen Docker con Python 3.11..."
+            cd "$PROJECT_DIR"
+            sudo docker build -t topibot-stt:latest .
+            print_status "Imagen Docker reconstruida"
+        fi
+    else
+        echo "🐳 Construyendo imagen Docker con Python 3.11..."
+        cd "$PROJECT_DIR"
+        sudo docker build -t topibot-stt:latest .
+        print_status "Imagen Docker construida"
+    fi
     
 else
     # Instalación tradicional con venv
@@ -330,22 +354,28 @@ print_status "Servicios systemd configurados"
 # Habilitar servicios para inicio automático
 echo ""
 echo "⚙️  Configurando inicio automático..."
-read -p "¿Deseas que TopiBot se inicie automáticamente al arrancar? (S/n): " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+if [ "$AUTO_YES" = true ]; then
+    print_warning "Modo automático: habilitando servicios para inicio automático"
     sudo systemctl enable stt.service
     sudo systemctl enable topibot.service
     print_status "✅ Servicios habilitados - TopiBot arrancará automáticamente en cada reboot"
 else
-    print_warning "Servicios NO habilitados - Deberás iniciarlos manualmente"
-    echo "   Para habilitarlos después: sudo systemctl enable stt.service topibot.service"
+    read -p "¿Deseas que TopiBot se inicie automáticamente al arrancar? (S/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        sudo systemctl enable stt.service
+        sudo systemctl enable topibot.service
+        print_status "✅ Servicios habilitados - TopiBot arrancará automáticamente en cada reboot"
+    else
+        print_warning "Servicios NO habilitados - Deberás iniciarlos manualmente"
+        echo "   Para habilitarlos después: sudo systemctl enable stt.service topibot.service"
+    fi
 fi
 
 # Preguntar si iniciar servicios ahora
 echo ""
-read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[SsYy]$ ]]; then
+if [ "$AUTO_YES" = true ]; then
+    print_warning "Modo automático: iniciando servicios"
     echo "🚀 Iniciando servidor STT..."
     sudo systemctl start stt.service
     sleep 3
@@ -353,6 +383,19 @@ if [[ $REPLY =~ ^[SsYy]$ ]]; then
     echo "🚀 Iniciando TopiBot..."
     sudo systemctl start topibot.service
     sleep 2
+else
+    read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[SsYy]$ ]]; then
+        echo "🚀 Iniciando servidor STT..."
+        sudo systemctl start stt.service
+        sleep 3
+        
+        echo "🚀 Iniciando TopiBot..."
+        sudo systemctl start topibot.service
+        sleep 2
+    fi
+fi
     
     print_status "Servicios iniciados"
     
