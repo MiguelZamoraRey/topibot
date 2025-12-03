@@ -135,10 +135,13 @@ sequenceDiagram
 ### Dependencias Python
 
 ```bash
+# Instaladas en virtual environment
 vosk >= 0.3.45
 sounddevice >= 0.4.6
 flask >= 2.0.0
 ```
+
+**Nota**: Las dependencias Python se instalan en un virtual environment (`venv/`) para evitar conflictos con paquetes del sistema.
 
 ### Dependencias Node.js
 
@@ -222,15 +225,28 @@ node -v   # Debe mostrar v18.x.x
 npm -v    # Debe mostrar 9.x.x o superior
 ```
 
-#### Paso 3: Instalar dependencias Python
+#### Paso 3: Crear virtual environment e instalar dependencias Python
 
 ```bash
+cd ~/topibot
+
+# Crear virtual environment
+python3 -m venv venv
+
+# Activar virtual environment
+source venv/bin/activate
+
 # Actualizar pip
-pip3 install --upgrade pip
+pip install --upgrade pip
 
 # Instalar paquetes necesarios
-pip3 install vosk sounddevice flask
+pip install vosk sounddevice flask
+
+# Desactivar (opcional)
+deactivate
 ```
+
+**Importante**: El virtual environment evita conflictos con paquetes del sistema (PEP 668).
 
 #### Paso 4: Instalar dependencias Node.js
 

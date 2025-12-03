@@ -32,8 +32,13 @@ topibot/
 ```
 ├── model/                 # Modelo Vosk (descargado por instalador)
 │   └── .gitkeep          # Para mantener directorio en git
+├── venv/                  # Virtual environment de Python (creado por instalador)
+│   ├── bin/              # Ejecutables de Python y pip
+│   ├── lib/              # Paquetes instalados (vosk, flask, etc.)
+│   └── ...
 └── docs/
-    └── GUIA_COMPLETA.md  # Documentación detallada
+    ├── GUIA_COMPLETA.md  # Documentación detallada
+    └── ESTRUCTURA.md     # Este archivo
 ```
 
 ## Archivos de Configuración
@@ -100,6 +105,14 @@ topibot/
 Estos archivos se crean durante la instalación y no están en el repositorio:
 
 ```
+venv/                      # Virtual environment de Python (~50 MB)
+  ├── bin/
+  │   ├── python3         # Python del venv
+  │   └── pip             # pip del venv
+  └── lib/
+      └── python3.x/
+          └── site-packages/  # vosk, flask, sounddevice
+
 model/                     # Modelo Vosk (~43 MB)
   ├── am/
   ├── conf/
@@ -118,8 +131,9 @@ test.*                     # Archivos temporales de pruebas
 ## Notas
 
 - **model/**: Vacío en el repositorio, el instalador descarga el modelo automáticamente
+- **venv/**: Virtual environment de Python, creado por `install.sh` para evitar conflictos con paquetes del sistema
 - **voz_led.js**: Script legacy que usa Vosk directamente en Node.js (no usado en producción)
-- **.gitignore**: Configurado para excluir model/, node_modules/ y archivos temporales
+- **.gitignore**: Configurado para excluir venv/, model/, node_modules/ y archivos temporales
 
 ---
 

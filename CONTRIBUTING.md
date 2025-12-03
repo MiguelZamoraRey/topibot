@@ -14,8 +14,12 @@ cd topibot
 ### 2. Instala Dependencias
 
 ```bash
-# Python
-pip3 install vosk sounddevice flask
+# Crear y activar virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Python (en venv)
+pip install vosk sounddevice flask
 
 # Node.js
 npm install
@@ -33,8 +37,9 @@ rm -rf vosk-model-small-es-0.42*
 ### 4. Ejecuta en Modo Desarrollo
 
 ```bash
-# Terminal 1
-python3 stt_server.py
+# Terminal 1 - Asegúrate de usar el Python del venv
+./venv/bin/python3 stt_server.py
+# o si ya activaste el venv: python3 stt_server.py
 
 # Terminal 2
 node index.js

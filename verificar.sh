@@ -51,27 +51,39 @@ else
 fi
 
 echo ""
-echo "3️⃣  Verificando paquetes Python..."
-if pip3 list 2>/dev/null | grep -q "vosk"; then
-    check_pass "vosk instalado"
+echo "3️⃣  Verificando virtual environment..."
+if [ -d "/home/pi/topibot/venv" ]; then
+    check_pass "Virtual environment existe"
 else
-    check_fail "vosk no instalado - pip3 install vosk"
-fi
-
-if pip3 list 2>/dev/null | grep -q "sounddevice"; then
-    check_pass "sounddevice instalado"
-else
-    check_fail "sounddevice no instalado - pip3 install sounddevice"
-fi
-
-if pip3 list 2>/dev/null | grep -q "Flask"; then
-    check_pass "flask instalado"
-else
-    check_fail "flask no instalado - pip3 install flask"
+    check_fail "Virtual environment no existe - ejecuta ./install.sh"
 fi
 
 echo ""
-echo "4️⃣  Verificando paquetes Node.js..."
+echo "4️⃣  Verificando paquetes Python en venv..."
+if [ -f "/home/pi/topibot/venv/bin/pip" ]; then
+    if /home/pi/topibot/venv/bin/pip list 2>/dev/null | grep -q "vosk"; then
+        check_pass "vosk instalado en venv"
+    else
+        check_fail "vosk no instalado - ejecuta ./install.sh"
+    fi
+
+    if /home/pi/topibot/venv/bin/pip list 2>/dev/null | grep -q "sounddevice"; then
+        check_pass "sounddevice instalado en venv"
+    else
+        check_fail "sounddevice no instalado - ejecuta ./install.sh"
+    fi
+
+    if /home/pi/topibot/venv/bin/pip list 2>/dev/null | grep -q "Flask"; then
+        check_pass "flask instalado en venv"
+    else
+        check_fail "flask no instalado - ejecuta ./install.sh"
+    fi
+else
+    check_fail "Virtual environment no configurado correctamente"
+fi
+
+echo ""
+echo "5️⃣  Verificando paquetes Node.js..."
 cd /home/pi/topibot 2>/dev/null || cd "$(dirname "$0")"
 
 if [ -f "package.json" ]; then
@@ -85,7 +97,7 @@ else
 fi
 
 echo ""
-echo "5️⃣  Verificando archivos del proyecto..."
+echo "6️⃣  Verificando archivos del proyecto..."
 FILES=("stt_server.py" "index.js" "comandos.js" "acciones.js" "package.json")
 for file in "${FILES[@]}"; do
     if [ -f "$file" ]; then
@@ -96,7 +108,7 @@ for file in "${FILES[@]}"; do
 done
 
 echo ""
-echo "6️⃣  Verificando modelo Vosk..."
+echo "7️⃣  Verificando modelo Vosk..."
 if [ -d "model/am" ] && [ -d "model/conf" ]; then
     check_pass "Modelo Vosk instalado en model/"
 else
@@ -105,7 +117,7 @@ else
 fi
 
 echo ""
-echo "7️⃣  Verificando servicios systemd..."
+echo "8️⃣  Verificando servicios systemd..."
 if [ -f "/etc/systemd/system/stt.service" ]; then
     check_pass "stt.service instalado"
 else
@@ -119,7 +131,7 @@ else
 fi
 
 echo ""
-echo "8️⃣  Verificando dispositivo de audio..."
+echo "9️⃣  Verificando dispositivo de audio..."
 if command -v arecord &> /dev/null; then
     if arecord -l 2>/dev/null | grep -q "card"; then
         check_pass "Dispositivo de audio detectado"
@@ -132,7 +144,7 @@ else
 fi
 
 echo ""
-echo "9️⃣  Verificando memoria disponible..."
+echo "🔟 Verificando memoria disponible..."
 if command -v free &> /dev/null; then
     FREE_RAM=$(free -m | awk '/^Mem:/{print $4}')
     if [ "$FREE_RAM" -gt 200 ]; then
@@ -145,7 +157,7 @@ else
 fi
 
 echo ""
-echo "🔟 Verificando estado de servicios..."
+echo "1️⃣1️⃣  Verificando estado de servicios..."
 if systemctl is-active --quiet stt.service; then
     check_pass "stt.service está corriendo"
 else

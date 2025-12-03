@@ -67,15 +67,26 @@ fi
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev alsa-utils
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
 
-# Instalar dependencias Python
+# Crear virtual environment
 echo ""
-echo "🐍 Instalando dependencias Python..."
-pip3 install --upgrade pip
-pip3 install vosk sounddevice flask
+echo "🐍 Creando entorno virtual Python..."
+if [ -d "/home/pi/topibot/venv" ]; then
+    print_warning "Virtual environment ya existe, recreando..."
+    rm -rf /home/pi/topibot/venv
+fi
 
-print_status "Dependencias Python instaladas"
+python3 -m venv /home/pi/topibot/venv
+print_status "Virtual environment creado"
+
+# Instalar dependencias Python en venv
+echo ""
+echo "📦 Instalando dependencias Python en venv..."
+/home/pi/topibot/venv/bin/pip install --upgrade pip
+/home/pi/topibot/venv/bin/pip install vosk sounddevice flask
+
+print_status "Dependencias Python instaladas en venv"
 
 # Instalar dependencias Node.js
 echo ""

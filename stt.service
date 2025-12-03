@@ -5,7 +5,7 @@ After=network.target sound.target
 [Service]
 User=pi
 WorkingDirectory=/home/pi/topibot
-ExecStart=/usr/bin/python3 /home/pi/topibot/stt_server.py
+ExecStart=/home/pi/topibot/venv/bin/python3 /home/pi/topibot/stt_server.py
 Restart=always
 RestartSec=2
 

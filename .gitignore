@@ -5,6 +5,11 @@ yarn-debug.log*
 yarn-error.log*
 package-lock.json
 
+# Virtual environment de Python
+venv/
+env/
+.venv/
+
 # Modelo Vosk (muy pesado para git)
 model/*
 !model/.gitkeep

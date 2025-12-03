@@ -2,6 +2,22 @@
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
 
+## [1.0.1] - Diciembre 2025
+
+### 🔄 Cambiado
+
+- **Virtual Environment**: Dependencias Python ahora se instalan en un venv en lugar del sistema
+  - Soluciona problema de PEP 668 en Python 3.11+
+  - Compatible con Raspberry Pi OS Trixie y Bookworm
+  - `stt.service` actualizado para usar `venv/bin/python3`
+- **Instalador**: `install.sh` ahora crea automáticamente el virtual environment
+- **Verificador**: `verificar.sh` actualizado para verificar el venv
+- **Documentación**: Actualizada para reflejar el uso de virtual environment
+
+### ✨ Añadido
+
+- Instalación de `python3-venv` en el script de instalación
+
 ## [1.0.0] - Diciembre 2025
 
 ### ✨ Características Iniciales
