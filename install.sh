@@ -35,6 +35,32 @@ print_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
+# Detener servicios si están corriendo
+echo "🧹 Limpieza previa..."
+if systemctl is-active --quiet topibot.service 2>/dev/null; then
+    print_warning "Servicio topibot.service detectado, deteniéndolo..."
+    sudo systemctl stop topibot.service
+fi
+
+if systemctl is-active --quiet stt.service 2>/dev/null; then
+    print_warning "Servicio stt.service detectado, deteniéndolo..."
+    sudo systemctl stop stt.service
+fi
+
+# Limpiar procesos anteriores
+if pgrep -f "stt_server.py" > /dev/null; then
+    print_warning "Proceso stt_server.py detectado, terminándolo..."
+    pkill -f "stt_server.py" || true
+fi
+
+if pgrep -f "topibot.*index.js" > /dev/null; then
+    print_warning "Proceso index.js detectado, terminándolo..."
+    pkill -f "topibot.*index.js" || true
+fi
+
+print_status "Limpieza completada"
+echo ""
+
 # Verificar que estamos en Raspberry Pi
 if [ ! -f /proc/device-tree/model ]; then
     print_warning "No se detectó Raspberry Pi, pero continuando..."
@@ -191,14 +217,18 @@ sudo systemctl daemon-reload
 
 print_status "Servicios systemd configurados con Node.js: $NODE_PATH"
 
-# Preguntar si habilitar servicios
+# Habilitar servicios para inicio automático
 echo ""
-read -p "¿Deseas habilitar los servicios para inicio automático? (s/n): " -n 1 -r
+echo "⚙️  Configurando inicio automático..."
+read -p "¿Deseas que TopiBot se inicie automáticamente al arrancar? (S/n): " -n 1 -r
 echo ""
-if [[ $REPLY =~ ^[SsYy]$ ]]; then
+if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     sudo systemctl enable stt.service
     sudo systemctl enable topibot.service
-    print_status "Servicios habilitados para inicio automático"
+    print_status "✅ Servicios habilitados - TopiBot arrancará automáticamente en cada reboot"
+else
+    print_warning "Servicios NO habilitados - Deberás iniciarlos manualmente"
+    echo "   Para habilitarlos después: sudo systemctl enable stt.service topibot.service"
 fi
 
 # Preguntar si iniciar servicios ahora
