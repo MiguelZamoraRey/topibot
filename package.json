@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "start:legacy": "node voz_led.js"
+    "start": "node index.js"
   },
   "keywords": ["vosk", "speech-recognition", "raspberry-pi"],
   "author": "",
