@@ -1,3 +1,4 @@
+
 # 📝 Changelog
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
@@ -17,6 +18,9 @@ Todos los cambios notables del proyecto se documentarán en este archivo.
 
 ### 🔧 Arreglado
 
+- **Instalación Docker en Trixie**: Usa repo de Bookworm (Trixie no tiene repo oficial aún)
+  - Instalación manual de Docker con repositorio compatible
+  - Soluciona error "The repository does not have a Release file"
 - **Path del modelo**: `stt_server.py` ahora usa path relativo en lugar de hardcodeado
   - Funciona en cualquier directorio de instalación
   - Mejores mensajes de error al cargar el modelo
