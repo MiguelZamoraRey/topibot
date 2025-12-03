@@ -383,6 +383,14 @@ if [ "$AUTO_YES" = true ]; then
     echo "🚀 Iniciando TopiBot..."
     sudo systemctl start topibot.service
     sleep 2
+    
+    print_status "Servicios iniciados"
+    
+    echo ""
+    echo "📊 Estado de los servicios:"
+    sudo systemctl status stt.service --no-pager -l | head -n 4
+    echo ""
+    sudo systemctl status topibot.service --no-pager -l | head -n 4
 else
     read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
     echo ""
@@ -394,16 +402,15 @@ else
         echo "🚀 Iniciando TopiBot..."
         sudo systemctl start topibot.service
         sleep 2
+        
+        print_status "Servicios iniciados"
+        
+        echo ""
+        echo "📊 Estado de los servicios:"
+        sudo systemctl status stt.service --no-pager -l | head -n 4
+        echo ""
+        sudo systemctl status topibot.service --no-pager -l | head -n 4
     fi
-fi
-    
-    print_status "Servicios iniciados"
-    
-    echo ""
-    echo "📊 Estado de los servicios:"
-    sudo systemctl status stt.service --no-pager -l | head -n 4
-    echo ""
-    sudo systemctl status topibot.service --no-pager -l | head -n 4
 fi
 
 # Resumen final
