@@ -35,27 +35,54 @@ print_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
-# Detener servicios si están corriendo
+# Limpieza completa antes de instalar
 echo "🧹 Limpieza previa..."
+
+# Detener servicios
 if systemctl is-active --quiet topibot.service 2>/dev/null; then
-    print_warning "Servicio topibot.service detectado, deteniéndolo..."
+    print_warning "Deteniendo topibot.service..."
     sudo systemctl stop topibot.service
 fi
 
 if systemctl is-active --quiet stt.service 2>/dev/null; then
-    print_warning "Servicio stt.service detectado, deteniéndolo..."
+    print_warning "Deteniendo stt.service..."
     sudo systemctl stop stt.service
 fi
 
-# Limpiar procesos anteriores
-if pgrep -f "stt_server.py" > /dev/null; then
-    print_warning "Proceso stt_server.py detectado, terminándolo..."
-    pkill -f "stt_server.py" || true
+# Deshabilitar servicios
+if systemctl is-enabled --quiet topibot.service 2>/dev/null; then
+    sudo systemctl disable topibot.service 2>/dev/null || true
 fi
 
-if pgrep -f "topibot.*index.js" > /dev/null; then
-    print_warning "Proceso index.js detectado, terminándolo..."
-    pkill -f "topibot.*index.js" || true
+if systemctl is-enabled --quiet stt.service 2>/dev/null; then
+    sudo systemctl disable stt.service 2>/dev/null || true
+fi
+
+# Eliminar archivos de servicio antiguos
+if [ -f /etc/systemd/system/topibot.service ]; then
+    sudo rm /etc/systemd/system/topibot.service
+fi
+
+if [ -f /etc/systemd/system/stt.service ]; then
+    sudo rm /etc/systemd/system/stt.service
+fi
+
+sudo systemctl daemon-reload 2>/dev/null || true
+
+# Limpiar procesos
+pkill -f "stt_server.py" 2>/dev/null || true
+pkill -f "topibot.*index.js" 2>/dev/null || true
+
+# Eliminar venv antiguo
+if [ -d "$PROJECT_DIR/venv" ]; then
+    print_warning "Eliminando venv antiguo..."
+    rm -rf "$PROJECT_DIR/venv"
+fi
+
+# Eliminar node_modules para instalación limpia
+if [ -d "$PROJECT_DIR/node_modules" ]; then
+    print_warning "Eliminando node_modules antiguo..."
+    rm -rf "$PROJECT_DIR/node_modules"
 fi
 
 print_status "Limpieza completada"
@@ -119,9 +146,10 @@ fi
 echo ""
 echo "🔍 Verificando Python 3..."
 
-# Buscar Python 3.8, 3.11 o 3.12 (evitar 3.13 por problemas con libvosk.so)
+# Buscar cualquier versión de Python 3
 PYTHON_CMD=""
 PYTHON_VER=""
+PYTHON_NEEDS_FIX=false
 
 for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; do
     if command -v $py_version &> /dev/null; then
@@ -129,75 +157,32 @@ for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; 
         PY_MAJOR=$(echo $PY_VER | cut -d. -f1)
         PY_MINOR=$(echo $PY_VER | cut -d. -f2)
         
-        # Evitar Python 3.13 por incompatibilidad con libvosk.so
-        if [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 13 ]; then
+        if [ "$PY_MAJOR" -eq 3 ]; then
             PYTHON_CMD=$py_version
             PYTHON_VER=$PY_VER
-            print_status "Python $PY_VER ($py_version) - Compatible ✓"
-            break
-        elif [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -ge 13 ]; then
-            if [ "$py_version" = "python3" ]; then
-                print_warning "Python $PY_VER tiene problemas con libvosk.so"
+            
+            # Python 3.13+ necesita fix con execstack
+            if [ "$PY_MINOR" -ge 13 ]; then
+                PYTHON_NEEDS_FIX=true
+                print_warning "Python $PY_VER detectado - Requiere fix para libvosk.so"
+            else
+                print_status "Python $PY_VER ($py_version) - Compatible ✓"
             fi
+            break
         fi
     fi
 done
 
-# Si no encontramos versión compatible, instalar con pyenv
 if [ -z "$PYTHON_CMD" ]; then
-    print_warning "No se encontró una versión compatible de Python 3 (< 3.13)"
-    echo ""
-    echo "🔧 Instalando Python 3.11 con pyenv..."
-    
-    # Instalar dependencias para compilar Python
-    echo "📦 Instalando dependencias de compilación..."
-    sudo apt install -y build-essential libssl-dev zlib1g-dev \
-        libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-        libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
-        libffi-dev liblzma-dev git
-    
-    # Instalar pyenv si no está instalado
-    if [ ! -d "$USER_HOME/.pyenv" ]; then
-        echo "📥 Descargando pyenv..."
-        curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
-        
-        # Agregar pyenv al PATH para esta sesión
-        export PYENV_ROOT="$USER_HOME/.pyenv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-        eval "$(pyenv init -)"
-        
-        # Agregar a .bashrc si no está
-        if ! grep -q "PYENV_ROOT" "$USER_HOME/.bashrc"; then
-            echo 'export PYENV_ROOT="$HOME/.pyenv"' >> "$USER_HOME/.bashrc"
-            echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> "$USER_HOME/.bashrc"
-            echo 'eval "$(pyenv init -)"' >> "$USER_HOME/.bashrc"
-        fi
-    else
-        export PYENV_ROOT="$USER_HOME/.pyenv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-        eval "$(pyenv init -)"
-    fi
-    
-    echo "🔨 Compilando Python 3.11.9 (esto puede tardar 10-20 minutos)..."
-    pyenv install -s 3.11.9
-    cd "$PROJECT_DIR"
-    pyenv local 3.11.9
-    
-    PYTHON_CMD="$USER_HOME/.pyenv/versions/3.11.9/bin/python3"
-    PYTHON_VER="3.11.9"
-    print_status "✅ Python 3.11.9 instalado con pyenv"
+    print_error "No se encontró Python 3"
+    exit 1
 fi
 
 # Instalar dependencias del sistema
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
-
-# Intentar instalar Python 3.8-3.12 si están disponibles
-for py_ver in 3.8 3.9 3.10 3.11 3.12; do
-    sudo apt install -y python$py_ver python$py_ver-venv python$py_ver-dev 2>/dev/null || true
-done
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils execstack
 
 # Crear virtual environment
 echo ""
@@ -217,6 +202,21 @@ echo "📦 Instalando dependencias Python en venv..."
 "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
 
 print_status "Dependencias Python instaladas en venv"
+
+# Aplicar fix para Python 3.13+ si es necesario
+if [ "$PYTHON_NEEDS_FIX" = true ]; then
+    echo ""
+    echo "🔧 Aplicando fix para Python $PYTHON_VER..."
+    
+    LIBVOSK_PATH=$(find "$PROJECT_DIR/venv" -name "libvosk.so" 2>/dev/null | head -1)
+    
+    if [ -n "$LIBVOSK_PATH" ]; then
+        sudo execstack -c "$LIBVOSK_PATH"
+        print_status "Fix aplicado a libvosk.so ✓"
+    else
+        print_warning "No se encontró libvosk.so, el fix se aplicará al iniciar el servicio"
+    fi
+fi
 
 # Instalar dependencias Node.js
 echo ""
