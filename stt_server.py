@@ -8,17 +8,26 @@ import os
 
 app = Flask(__name__)
 
+# Obtener el directorio del script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(script_dir, "model")
+
 # Verificar que el modelo existe
-model_path = "/home/pi/topibot/model"
 if not os.path.exists(model_path):
-    print(f"❌ ERROR: No se encuentra el modelo en {model_path}")
-    print("💡 Descarga un modelo desde: https://alphacephei.com/vosk/models")
+    print(f"❌ ERROR: No se encuentra el modelo en {model_path}", file=sys.stderr)
+    print(f"💡 Directorio actual: {script_dir}", file=sys.stderr)
+    print("💡 Descarga un modelo desde: https://alphacephei.com/vosk/models", file=sys.stderr)
     sys.exit(1)
 
 print(f"📦 Cargando modelo desde {model_path}...")
-model = Model(model_path)
-recognizer = KaldiRecognizer(model, 16000)
-print("✅ Modelo cargado correctamente")
+try:
+    model = Model(model_path)
+    recognizer = KaldiRecognizer(model, 16000)
+    print("✅ Modelo cargado correctamente")
+except Exception as e:
+    print(f"❌ ERROR al cargar modelo Vosk: {e}", file=sys.stderr)
+    print(f"💡 Path del modelo: {model_path}", file=sys.stderr)
+    sys.exit(1)
 
 q = queue.Queue()
 
