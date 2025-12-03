@@ -202,9 +202,25 @@ if [ "$USE_DOCKER" = true ]; then
     if ! command -v docker &> /dev/null; then
         echo ""
         echo "🐳 Instalando Docker..."
-        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
-        sudo sh /tmp/get-docker.sh
-        sudo usermod -aG docker $ACTUAL_USER
+        
+        # Instalar Docker manualmente (get.docker.com falla en Trixie)
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl gnupg
+        sudo install -m 0755 -d /etc/apt/keyrings
+        
+        # Usar repo de Bookworm (Trixie no tiene repo oficial aún)
+        curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+          bookworm stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        
+        sudo usermod -aG docker $CURRENT_USER
         print_status "Docker instalado (requiere re-login para permisos)"
     else
         print_status "Docker ya instalado"
