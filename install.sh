@@ -291,12 +291,12 @@ npm install
 
 print_status "Dependencias Node.js instaladas"
 
-# Verificar pigpio para buzzer
-if [ -d "$PROJECT_DIR/node_modules/pigpio" ]; then
-    print_status "Librería pigpio instalada (soporte buzzer pasivo PWM)"
+# Verificar pigpiod daemon para buzzer PWM
+if systemctl is-active --quiet pigpiod 2>/dev/null; then
+    print_status "Daemon pigpiod activo (soporte buzzer pasivo PWM)"
 else
-    print_warning "pigpio no instalado - buzzer usará modo simple"
-    print_warning "Para buzzer pasivo ejecuta: npm install pigpio"
+    print_warning "pigpiod no activo - buzzer usará modo simple"
+    print_warning "Para buzzer pasivo: sudo systemctl start pigpiod"
 fi
 
 # Verificar modelo Vosk

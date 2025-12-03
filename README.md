@@ -161,35 +161,26 @@ El buzzer emite un **beep-beep** automáticamente cuando dices "topibot" para co
 
 **El sistema soporta ambos tipos de buzzer:**
 - **Buzzer Activo**: Funciona automáticamente con control ON/OFF simple
-- **Buzzer Pasivo**: Requiere PWM (se instala automáticamente con `install.sh`)
+- **Buzzer Pasivo**: Usa PWM vía daemon `pigpiod` (se instala automáticamente con `install.sh`)
 
 **Si el buzzer no suena:**
 ```bash
-# 1. Verifica que pigpio esté instalado (lo hace install.sh)
+# 1. Verifica que pigpiod esté corriendo
 sudo systemctl status pigpiod
+sudo systemctl start pigpiod  # Si no está activo
 
-# 2. Prueba con Python
-python3 << EOF
-import RPi.GPIO as GPIO
-import time
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(22, GPIO.OUT)
-pwm = GPIO.PWM(22, 2000)
-pwm.start(50)
-time.sleep(1)
-pwm.stop()
-GPIO.cleanup()
-EOF
+# 2. Prueba con comando directo
+pigs hp 22 2000 128  # Encender PWM
+sleep 1
+pigs hp 22 0 0       # Apagar
 
-# 3. Si suena con Python pero no con TopiBot, reinstala dependencias:
-cd ~/topibot
-npm install pigpio
-sudo systemctl restart topibot.service
+# 3. Si no funciona, verifica polaridad (intercambia + y -)
 ```
 
 **Troubleshooting:**
 - Si no suena → Prueba invertir la polaridad (+ y -)
 - Si sigue sin sonar → El buzzer puede estar roto o necesitar 5V en lugar de 3.3V
+- Verifica que `pigpiod` esté corriendo: `sudo systemctl status pigpiod`
 
 ### 📨 Sistema de Mensajes Multi-Paso
 

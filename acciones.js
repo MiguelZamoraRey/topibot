@@ -8,17 +8,6 @@
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 
-// Intentar importar pigpio para control PWM del buzzer
-let Gpio = null;
-let pigpioAvailable = false;
-try {
-  const pigpioModule = await import('pigpio');
-  Gpio = pigpioModule.Gpio;
-  pigpioAvailable = true;
-} catch (err) {
-  // pigpio no disponible, usaremos método simple
-}
-
 // ========================================
 // CONFIGURACIÓN GPIO
 // ========================================
@@ -28,7 +17,7 @@ const BUZZER_PIN = 22; // GPIO 22 (Pin físico 15)
 const BUZZER_FREQUENCY = 2000; // 2000Hz para buzzer pasivo
 const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
 let gpioAvailable = false;
-let buzzerPwm = null;
+let pigpioAvailable = false;
 
 // Verificar si gpiod está disponible
 try {
@@ -38,13 +27,15 @@ try {
   if (existsSync('/dev/gpiochip0')) {
     gpioAvailable = true;
     
-    // Inicializar PWM del buzzer si pigpio está disponible
-    if (pigpioAvailable && Gpio) {
-      buzzerPwm = new Gpio(BUZZER_PIN, { mode: Gpio.OUTPUT });
+    // Verificar si pigpiod daemon está disponible para PWM
+    try {
+      execSync('which pigs', { stdio: 'ignore' });
+      execSync('pigs t 2>/dev/null', { stdio: 'ignore' }); // Test connection to daemon
+      pigpioAvailable = true;
       console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer PWM en GPIO 22');
-    } else {
+    } catch (err) {
       console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer simple en GPIO 22');
-      console.log('   💡 Para buzzer pasivo instala: npm install pigpio && sudo apt install pigpio');
+      console.log('   💡 Para buzzer pasivo: sudo systemctl start pigpiod');
     }
   }
 } catch (err) {
@@ -243,12 +234,11 @@ function beep(duracion = 100) {
   if (!gpioAvailable) return;
   
   try {
-    if (pigpioAvailable && buzzerPwm) {
-      // Usar PWM para buzzer pasivo
-      buzzerPwm.pwmFrequency(BUZZER_FREQUENCY);
-      buzzerPwm.pwmWrite(128); // 50% duty cycle (255/2)
+    if (pigpioAvailable) {
+      // Usar PWM con daemon pigpiod (comando pigs)
+      execSync(`pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128`, { stdio: 'ignore' });
       setTimeout(() => {
-        buzzerPwm.pwmWrite(0); // Apagar
+        execSync(`pigs hp ${BUZZER_PIN} 0 0`, { stdio: 'ignore' });
       }, duracion);
     } else {
       // Fallback: método simple para buzzer activo
@@ -272,19 +262,10 @@ export function sonidoActivacion() {
   try {
     console.log("🔊 Beep de activación");
     
-    if (pigpioAvailable && buzzerPwm) {
-      // Beep corto + pausa + beep largo con PWM
-      buzzerPwm.pwmFrequency(BUZZER_FREQUENCY);
-      buzzerPwm.pwmWrite(128);
-      setTimeout(() => {
-        buzzerPwm.pwmWrite(0);
-        setTimeout(() => {
-          buzzerPwm.pwmWrite(128);
-          setTimeout(() => {
-            buzzerPwm.pwmWrite(0);
-          }, 150);
-        }, 50);
-      }, 80);
+    if (pigpioAvailable) {
+      // Beep corto + pausa + beep largo con PWM usando daemon pigpiod
+      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.08 && pigs hp ${BUZZER_PIN} 0 0 && sleep 0.05 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.15 && pigs hp ${BUZZER_PIN} 0 0) &`;
+      execSync(cmd);
     } else {
       // Fallback: método simple
       const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.08 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
@@ -324,25 +305,10 @@ export function sonidoError() {
   try {
     console.log("🔊 Beep de error");
     
-    if (pigpioAvailable && buzzerPwm) {
-      // Tres beeps cortos con PWM
-      buzzerPwm.pwmFrequency(BUZZER_FREQUENCY);
-      buzzerPwm.pwmWrite(128);
-      setTimeout(() => {
-        buzzerPwm.pwmWrite(0);
-        setTimeout(() => {
-          buzzerPwm.pwmWrite(128);
-          setTimeout(() => {
-            buzzerPwm.pwmWrite(0);
-            setTimeout(() => {
-              buzzerPwm.pwmWrite(128);
-              setTimeout(() => {
-                buzzerPwm.pwmWrite(0);
-              }, 50);
-            }, 30);
-          }, 50);
-        }, 30);
-      }, 50);
+    if (pigpioAvailable) {
+      // Tres beeps cortos con PWM usando daemon pigpiod
+      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0) &`;
+      execSync(cmd);
     } else {
       // Fallback: método simple
       const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.03 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.03 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
