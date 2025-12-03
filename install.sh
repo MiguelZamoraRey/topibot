@@ -203,10 +203,16 @@ if [ "$USE_DOCKER" = true ]; then
         echo ""
         echo "🐳 Instalando Docker..."
         
+        # Limpiar repos antiguos de Docker
+        sudo rm -f /etc/apt/sources.list.d/docker.list
+        
         # Instalar Docker manualmente (get.docker.com falla en Trixie)
         sudo apt-get update
         sudo apt-get install -y ca-certificates curl gnupg
         sudo install -m 0755 -d /etc/apt/keyrings
+        
+        # Limpiar keyring antiguo
+        sudo rm -f /etc/apt/keyrings/docker.gpg
         
         # Usar repo de Bookworm (Trixie no tiene repo oficial aún)
         curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
