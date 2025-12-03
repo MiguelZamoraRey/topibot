@@ -121,7 +121,9 @@ echo "🔍 Verificando Python 3..."
 
 # Buscar Python 3.8, 3.11 o 3.12 (evitar 3.13 por problemas con libvosk.so)
 PYTHON_CMD=""
-for py_version in python3.8 python3.11 python3.12 python3.10 python3.9 python3; do
+PYTHON_VER=""
+
+for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; do
     if command -v $py_version &> /dev/null; then
         PY_VER=$($py_version --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
         PY_MAJOR=$(echo $PY_VER | cut -d. -f1)
@@ -130,45 +132,60 @@ for py_version in python3.8 python3.11 python3.12 python3.10 python3.9 python3; 
         # Evitar Python 3.13 por incompatibilidad con libvosk.so
         if [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 13 ]; then
             PYTHON_CMD=$py_version
+            PYTHON_VER=$PY_VER
             print_status "Python $PY_VER ($py_version) - Compatible ✓"
             break
         elif [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -ge 13 ]; then
-            print_warning "Python $PY_VER tiene problemas con libvosk.so, buscando otra versión..."
+            if [ "$py_version" = "python3" ]; then
+                print_warning "Python $PY_VER tiene problemas con libvosk.so"
+            fi
         fi
     fi
 done
 
+# Si no encontramos versión compatible, instalar con pyenv
 if [ -z "$PYTHON_CMD" ]; then
-    print_error "No se encontró una versión compatible de Python 3 (< 3.13)"
-    print_warning "Python 3.13+ tiene problemas con libvosk.so"
+    print_warning "No se encontró una versión compatible de Python 3 (< 3.13)"
     echo ""
-    echo "Intentando instalar Python 3.11 con pyenv..."
+    echo "🔧 Instalando Python 3.11 con pyenv..."
+    
+    # Instalar dependencias para compilar Python
+    echo "📦 Instalando dependencias de compilación..."
+    sudo apt install -y build-essential libssl-dev zlib1g-dev \
+        libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+        libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
+        libffi-dev liblzma-dev git
     
     # Instalar pyenv si no está instalado
-    if ! command -v pyenv &> /dev/null; then
-        echo "📦 Instalando dependencias para compilar Python..."
-        sudo apt install -y build-essential libssl-dev zlib1g-dev \
-            libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
-            libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
-            libffi-dev liblzma-dev
+    if [ ! -d "$USER_HOME/.pyenv" ]; then
+        echo "📥 Descargando pyenv..."
+        curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
         
-        echo "📥 Instalando pyenv..."
-        curl https://pyenv.run | bash
-        
-        export PYENV_ROOT="$HOME/.pyenv"
+        # Agregar pyenv al PATH para esta sesión
+        export PYENV_ROOT="$USER_HOME/.pyenv"
         export PATH="$PYENV_ROOT/bin:$PATH"
         eval "$(pyenv init -)"
         
-        echo "📥 Instalando Python 3.11.9 con pyenv..."
-        pyenv install 3.11.9
-        pyenv local 3.11.9
-        
-        PYTHON_CMD="python3"
-        print_status "Python 3.11.9 instalado con pyenv ✓"
+        # Agregar a .bashrc si no está
+        if ! grep -q "PYENV_ROOT" "$USER_HOME/.bashrc"; then
+            echo 'export PYENV_ROOT="$HOME/.pyenv"' >> "$USER_HOME/.bashrc"
+            echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> "$USER_HOME/.bashrc"
+            echo 'eval "$(pyenv init -)"' >> "$USER_HOME/.bashrc"
+        fi
     else
-        print_error "Por favor instala Python 3.8-3.12 manualmente"
-        exit 1
+        export PYENV_ROOT="$USER_HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        eval "$(pyenv init -)"
     fi
+    
+    echo "🔨 Compilando Python 3.11.9 (esto puede tardar 10-20 minutos)..."
+    pyenv install -s 3.11.9
+    cd "$PROJECT_DIR"
+    pyenv local 3.11.9
+    
+    PYTHON_CMD="$USER_HOME/.pyenv/versions/3.11.9/bin/python3"
+    PYTHON_VER="3.11.9"
+    print_status "✅ Python 3.11.9 instalado con pyenv"
 fi
 
 # Instalar dependencias del sistema
