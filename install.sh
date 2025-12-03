@@ -42,22 +42,50 @@ else
     print_status "Raspberry Pi detectada: $(cat /proc/device-tree/model)"
 fi
 
-# Verificar versión de Node.js
+# Detectar y configurar Node.js (nvm o system)
 echo ""
 echo "🔍 Verificando Node.js..."
+
+# Intentar cargar nvm
+if [ -f "$USER_HOME/.nvm/nvm.sh" ]; then
+    export NVM_DIR="$USER_HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    
+    if command -v nvm &> /dev/null; then
+        print_status "nvm detectado"
+        
+        # Intentar usar Node.js 18
+        if nvm ls 18 &> /dev/null; then
+            nvm use 18 &> /dev/null
+            print_status "Usando Node.js $(node -v) desde nvm"
+        else
+            print_warning "Node.js 18 no instalado en nvm, usando versión actual"
+            nvm use node &> /dev/null
+        fi
+        
+        NODE_PATH=$(which node)
+        print_status "Ruta de Node.js: $NODE_PATH"
+    fi
+fi
+
+# Verificar si Node.js está disponible
 if command -v node &> /dev/null; then
     NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+    NODE_PATH=$(which node)
+    
     if [ "$NODE_VERSION" -ge 16 ]; then
         print_status "Node.js $(node -v) - Compatible ✓"
     else
         print_error "Node.js $NODE_VERSION - Se requiere versión 16 o superior"
-        echo "Instala Node.js 16+:"
-        echo "  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
-        echo "  sudo apt install -y nodejs"
+        echo "Opciones de instalación:"
+        echo "  1. Con nvm: nvm install 18 && nvm use 18"
+        echo "  2. Sistema: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
+        echo "             sudo apt install -y nodejs"
         exit 1
     fi
 else
     print_error "Node.js no está instalado"
+    echo "Instala Node.js 18 con nvm o desde el sistema"
     exit 1
 fi
 
@@ -145,8 +173,14 @@ echo ""
 echo "⚙️  Configurando servicios systemd..."
 
 # Crear servicios temporales con rutas correctas
-sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
-sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g" "$PROJECT_DIR/topibot.service" > /tmp/topibot.service.tmp
+sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g" "$PROJECT_DIR/topibot.service" > /tmp/topibot.service.tmp
+
+# Si usamos nvm, agregar configuración de entorno
+if [ -f "$USER_HOME/.nvm/nvm.sh" ]; then
+    # Agregar variables de entorno de nvm al servicio de Node.js
+    sed -i "/\[Service\]/a Environment=\"NVM_DIR=$USER_HOME/.nvm\"" /tmp/topibot.service.tmp
+fi
 
 sudo cp /tmp/stt.service.tmp /etc/systemd/system/stt.service
 sudo cp /tmp/topibot.service.tmp /etc/systemd/system/topibot.service
@@ -155,7 +189,7 @@ rm /tmp/stt.service.tmp /tmp/topibot.service.tmp
 
 sudo systemctl daemon-reload
 
-print_status "Servicios systemd configurados"
+print_status "Servicios systemd configurados con Node.js: $NODE_PATH"
 
 # Preguntar si habilitar servicios
 echo ""

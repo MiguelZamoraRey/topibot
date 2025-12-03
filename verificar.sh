@@ -35,11 +35,23 @@ check_warn() {
     echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
+# Intentar cargar nvm si existe
+if [ -f "$HOME/.nvm/nvm.sh" ]; then
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+fi
+
 echo "1️⃣  Verificando Node.js..."
 if command -v node &> /dev/null; then
     NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+    NODE_PATH=$(which node)
+    
     if [ "$NODE_VERSION" -ge 16 ]; then
-        check_pass "Node.js $(node -v) - Compatible"
+        if [[ "$NODE_PATH" == *".nvm"* ]]; then
+            check_pass "Node.js $(node -v) - Compatible (nvm)"
+        else
+            check_pass "Node.js $(node -v) - Compatible (system)"
+        fi
     else
         check_fail "Node.js v$NODE_VERSION - Requiere v16+"
     fi
