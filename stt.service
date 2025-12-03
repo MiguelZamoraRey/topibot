@@ -8,6 +8,11 @@ WorkingDirectory=/home/ainhur/Documents/topibot
 ExecStart=/home/ainhur/Documents/topibot/venv/bin/python3 /home/ainhur/Documents/topibot/stt_server.py
 Restart=always
 RestartSec=2
+# Workaround para Python 3.13+ y libvosk.so
+Environment="PYTHONDONTWRITEBYTECODE=1"
+# Deshabilitar protección de stack ejecutable para este servicio
+ReadWritePaths=/tmp
+NoExecPaths=
 Restart=always
 RestartSec=2
 

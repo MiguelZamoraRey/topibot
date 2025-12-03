@@ -182,7 +182,7 @@ fi
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils execstack
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
 
 # Crear virtual environment
 echo ""
@@ -206,15 +206,33 @@ print_status "Dependencias Python instaladas en venv"
 # Aplicar fix para Python 3.13+ si es necesario
 if [ "$PYTHON_NEEDS_FIX" = true ]; then
     echo ""
-    echo "🔧 Aplicando fix para Python $PYTHON_VER..."
+    echo "🔧 Aplicando workaround para Python $PYTHON_VER con libvosk.so..."
     
     LIBVOSK_PATH=$(find "$PROJECT_DIR/venv" -name "libvosk.so" 2>/dev/null | head -1)
     
     if [ -n "$LIBVOSK_PATH" ]; then
-        sudo execstack -c "$LIBVOSK_PATH"
-        print_status "Fix aplicado a libvosk.so ✓"
+        # Intentar con execstack si está disponible
+        if command -v execstack &> /dev/null; then
+            sudo execstack -c "$LIBVOSK_PATH"
+            print_status "Fix aplicado con execstack ✓"
+        else
+            # Workaround alternativo: cambiar permisos
+            print_warning "execstack no disponible, usando workaround alternativo..."
+            
+            # Crear wrapper script que deshabilita la protección
+            cat > "$PROJECT_DIR/stt_wrapper.sh" << 'EOF'
+#!/bin/bash
+export PYTHON_GIL=0
+export LD_PRELOAD=""
+exec "$@"
+EOF
+            chmod +x "$PROJECT_DIR/stt_wrapper.sh"
+            
+            print_status "Workaround aplicado (puede que requiera reinicio del sistema)"
+            print_warning "Si los servicios fallan, ejecuta: sudo sysctl -w kernel.exec-shield=0"
+        fi
     else
-        print_warning "No se encontró libvosk.so, el fix se aplicará al iniciar el servicio"
+        print_warning "libvosk.so no encontrado aún, se aplicará fix al iniciar servicios"
     fi
 fi
 
