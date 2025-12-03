@@ -36,6 +36,114 @@ try {
 
 let ledState = false;
 
+// Estado para sistema de mensajes multi-paso
+let mensajeState = {
+  activo: false,
+  destinatario: null,
+  mensaje: null
+};
+
+// Mapeo de destinatarios
+const DESTINATARIOS = {
+  'padre': 'Padre',
+  'madre': 'Madre',
+  'esther': 'Esther',
+  'mamá': 'Madre',
+  'mama': 'Madre',
+  'papá': 'Padre',
+  'papa': 'Padre'
+};
+
+// ========================================
+// FUNCIONES DE MENSAJERÍA
+// ========================================
+
+/**
+ * Activa el modo mensaje
+ */
+export function activarModoMensaje() {
+  mensajeState.activo = true;
+  mensajeState.destinatario = null;
+  mensajeState.mensaje = null;
+  console.log("📨 Modo mensaje ACTIVADO");
+  console.log("👤 Di el nombre del destinatario: padre, madre, esther...");
+}
+
+/**
+ * Establece el destinatario del mensaje
+ * @param {string} texto - Texto con el nombre del destinatario
+ */
+export function establecerDestinatario(texto) {
+  if (!mensajeState.activo) {
+    console.log("⚠️  Primero activa el modo mensaje diciendo: 'mensaje'");
+    return false;
+  }
+
+  const textoLower = texto.toLowerCase().trim();
+  
+  // Buscar destinatario en el texto
+  for (const [keyword, nombre] of Object.entries(DESTINATARIOS)) {
+    if (textoLower.includes(keyword)) {
+      mensajeState.destinatario = nombre;
+      console.log(`👤 Destinatario seleccionado: ${nombre}`);
+      console.log("💬 Ahora di tu mensaje...");
+      return true;
+    }
+  }
+  
+  console.log("⚠️  Destinatario no reconocido. Disponibles: padre, madre, esther");
+  return false;
+}
+
+/**
+ * Captura y envía el mensaje
+ * @param {string} texto - El mensaje a enviar
+ */
+export function capturarMensaje(texto) {
+  if (!mensajeState.activo) {
+    console.log("⚠️  Primero activa el modo mensaje diciendo: 'mensaje'");
+    return;
+  }
+  
+  if (!mensajeState.destinatario) {
+    console.log("⚠️  Primero selecciona un destinatario");
+    return;
+  }
+  
+  mensajeState.mensaje = texto.trim();
+  
+  console.log("\n╔════════════════════════════════════════╗");
+  console.log("║       📨 MENSAJE CAPTURADO 📨         ║");
+  console.log("╚════════════════════════════════════════╝");
+  console.log(`👤 Destinatario: ${mensajeState.destinatario}`);
+  console.log(`💬 Mensaje: "${mensajeState.mensaje}"`);
+  console.log("════════════════════════════════════════");
+  console.log("✅ [Aquí se enviará por Telegram/Discord]");
+  console.log("");
+  
+  // Resetear estado
+  mensajeState.activo = false;
+  mensajeState.destinatario = null;
+  mensajeState.mensaje = null;
+}
+
+/**
+ * Cancela el modo mensaje
+ */
+export function cancelarMensaje() {
+  mensajeState.activo = false;
+  mensajeState.destinatario = null;
+  mensajeState.mensaje = null;
+  console.log("❌ Modo mensaje CANCELADO");
+}
+
+/**
+ * Obtiene el estado actual del sistema de mensajes
+ */
+export function obtenerEstadoMensaje() {
+  return { ...mensajeState };
+}
+
 // ========================================
 // FUNCIONES DE LED
 // ========================================
