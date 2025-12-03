@@ -189,24 +189,46 @@ if [ -d "$PROJECT_DIR/venv" ]; then
     rm -rf "$PROJECT_DIR/venv"
 fi
 
-$PYTHON_CMD -m venv "$PROJECT_DIR/venv"
-print_status "Virtual environment creado con $PYTHON_CMD"
-
-# Instalar dependencias Python en venv
-echo ""
-echo "📦 Instalando dependencias Python en venv..."
-"$PROJECT_DIR/venv/bin/pip" install --upgrade pip
-
-# Verificar versión de Python e instalar vosk apropiadamente
-VENV_PYTHON_VER=$("$PROJECT_DIR/venv/bin/python3" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-if [[ "$VENV_PYTHON_VER" == "3.13" ]]; then
-    print_warning "Python 3.13 detectado - Instalando vosk desde GitHub (versión más reciente)"
-    "$PROJECT_DIR/venv/bin/pip" install git+https://github.com/alphacep/vosk-api.git@master#subdirectory=python sounddevice flask
-else
-    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+# Detectar si necesitamos Docker (Python 3.13+)
+USE_DOCKER=false
+PY_MINOR=$(echo $PYTHON_VER | cut -d. -f2)
+if [ "$PY_MINOR" -ge 13 ]; then
+    USE_DOCKER=true
+    print_warning "Python 3.13 detectado - Usaremos Docker con Python 3.11"
 fi
 
-print_status "Dependencias Python instaladas en venv"
+if [ "$USE_DOCKER" = true ]; then
+    # Instalar Docker si no está
+    if ! command -v docker &> /dev/null; then
+        echo ""
+        echo "🐳 Instalando Docker..."
+        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+        sudo sh /tmp/get-docker.sh
+        sudo usermod -aG docker $ACTUAL_USER
+        print_status "Docker instalado (requiere re-login para permisos)"
+    else
+        print_status "Docker ya instalado"
+    fi
+    
+    # Construir imagen Docker
+    echo ""
+    echo "🐳 Construyendo imagen Docker con Python 3.11..."
+    cd "$PROJECT_DIR"
+    sudo docker build -t topibot-stt:latest .
+    print_status "Imagen Docker construida"
+    
+else
+    # Instalación tradicional con venv
+    $PYTHON_CMD -m venv "$PROJECT_DIR/venv"
+    print_status "Virtual environment creado con $PYTHON_CMD"
+
+    # Instalar dependencias Python en venv
+    echo ""
+    echo "📦 Instalando dependencias Python en venv..."
+    "$PROJECT_DIR/venv/bin/pip" install --upgrade pip
+    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+    print_status "Dependencias Python instaladas en venv"
+fi
 
 # Instalar dependencias Node.js
 echo ""
@@ -256,16 +278,21 @@ fi
 echo ""
 echo "⚙️  Configurando servicios systemd..."
 
-# Obtener la ruta del Python del venv
-VENV_PYTHON="$PROJECT_DIR/venv/bin/python3"
+if [ "$USE_DOCKER" = true ]; then
+    # Usar servicio Docker
+    sed "s|PROJECT_DIR_PLACEHOLDER|$PROJECT_DIR|g" "$PROJECT_DIR/stt-docker.service" > /tmp/stt.service.tmp
+    print_status "Usando servicio STT con Docker (Python 3.11)"
+else
+    # Usar servicio tradicional con venv
+    VENV_PYTHON="$PROJECT_DIR/venv/bin/python3"
+    sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g; s|/usr/bin/python3.8|$VENV_PYTHON|g; s|ExecStart=/home/pi/topibot/venv/bin/python3|ExecStart=$VENV_PYTHON|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+fi
 
-# Crear servicios temporales con rutas correctas
-sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g; s|/usr/bin/python3.8|$VENV_PYTHON|g; s|ExecStart=/home/pi/topibot/venv/bin/python3|ExecStart=$VENV_PYTHON|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+# Servicio Node.js (siempre el mismo)
 sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g; s|/usr/bin/node|$NODE_PATH|g" "$PROJECT_DIR/topibot.service" > /tmp/topibot.service.tmp
 
 # Si usamos nvm, agregar configuración de entorno
 if [ -f "$USER_HOME/.nvm/nvm.sh" ]; then
-    # Agregar variables de entorno de nvm al servicio de Node.js
     sed -i "/\[Service\]/a Environment=\"NVM_DIR=$USER_HOME/.nvm\"" /tmp/topibot.service.tmp
 fi
 
@@ -276,7 +303,7 @@ rm /tmp/stt.service.tmp /tmp/topibot.service.tmp
 
 sudo systemctl daemon-reload
 
-print_status "Servicios systemd configurados con Node.js: $NODE_PATH"
+print_status "Servicios systemd configurados"
 
 # Habilitar servicios para inicio automático
 echo ""

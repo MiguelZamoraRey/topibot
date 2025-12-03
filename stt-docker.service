@@ -1,0 +1,22 @@
+[Unit]
+Description=Servidor Vosk STT (Docker con Python 3.11)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=PROJECT_DIR_PLACEHOLDER
+ExecStartPre=-/usr/bin/docker stop topibot-stt
+ExecStartPre=-/usr/bin/docker rm topibot-stt
+ExecStart=/usr/bin/docker run --rm \
+    --name topibot-stt \
+    --device /dev/snd:/dev/snd \
+    --group-add audio \
+    -p 5005:5005 \
+    topibot-stt:latest
+ExecStop=/usr/bin/docker stop topibot-stt
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
