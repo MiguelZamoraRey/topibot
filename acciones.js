@@ -13,6 +13,7 @@ import { existsSync } from 'fs';
 // ========================================
 
 const LED_PIN = 17; // GPIO 17 (Pin físico 11)
+const BUZZER_PIN = 27; // GPIO 27 (Pin físico 13) - Ajusta según tu conexión
 const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
 let gpioAvailable = false;
 
@@ -23,7 +24,7 @@ try {
   // Verificar que el chip GPIO existe
   if (existsSync('/dev/gpiochip0')) {
     gpioAvailable = true;
-    console.log('✅ GPIO inicializado - LED en GPIO 17 (usando gpiod)');
+    console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer en GPIO 27');
   }
 } catch (err) {
   console.log('⚠️  GPIO no disponible - Modo simulación');
@@ -207,6 +208,83 @@ export function toggleLED() {
     }
   }
   console.log(`🔄 LED ${ledState ? "encendido" : "apagado"}`);
+}
+
+// ========================================
+// FUNCIONES DE BUZZER
+// ========================================
+
+/**
+ * Emite un beep corto con el buzzer
+ * @param {number} duracion - Duración del beep en milisegundos
+ */
+function beep(duracion = 100) {
+  if (!gpioAvailable) return;
+  
+  try {
+    // Encender buzzer
+    execSync(`gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1`);
+    // Esperar la duración
+    execSync(`sleep ${duracion / 1000}`);
+    // Apagar buzzer
+    execSync(`gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0`);
+  } catch (err) {
+    console.log('⚠️  Error en buzzer:', err.message);
+  }
+}
+
+/**
+ * Sonido de activación - Beep doble ascendente
+ */
+export function sonidoActivacion() {
+  if (!gpioAvailable) {
+    console.log("🔊 [Simulación] Beep-beep de activación");
+    return;
+  }
+  
+  try {
+    console.log("🔊 Beep de activación");
+    // Beep corto
+    beep(80);
+    execSync('sleep 0.05');
+    // Beep más largo
+    beep(150);
+  } catch (err) {
+    console.log('⚠️  Error en sonido de activación:', err.message);
+  }
+}
+
+/**
+ * Sonido de confirmación - Beep simple
+ */
+export function sonidoConfirmacion() {
+  if (!gpioAvailable) {
+    console.log("🔊 [Simulación] Beep de confirmación");
+    return;
+  }
+  
+  console.log("🔊 Beep de confirmación");
+  beep(100);
+}
+
+/**
+ * Sonido de error - Beeps rápidos
+ */
+export function sonidoError() {
+  if (!gpioAvailable) {
+    console.log("🔊 [Simulación] Beeps de error");
+    return;
+  }
+  
+  try {
+    console.log("🔊 Beeps de error");
+    for (let i = 0; i < 3; i++) {
+      beep(50);
+      if (i < 2) execSync('sleep 0.05');
+    }
+  } catch (err) {
+    console.log('⚠️  Error en sonido de error:', err.message);
+  }
 }
 
 // ========================================

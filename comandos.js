@@ -37,6 +37,11 @@ import {
   obtenerEstadoLED,
   toggleLED,
   
+  // Funciones de buzzer
+  sonidoActivacion,
+  sonidoConfirmacion,
+  sonidoError,
+  
   // Funciones de mensajería
   activarModoMensaje,
   establecerDestinatario,
@@ -182,6 +187,7 @@ export function procesarComando(texto, sistemaActivo = false) {
   // Verificar si se dijo la palabra de activación
   if (textoLower.includes(PALABRA_ACTIVACION)) {
     console.log("🎯 ¡Palabra de activación detectada! Sistema activo...");
+    sonidoActivacion(); // 🔊 Beep de feedback
     return { ejecutado: false, activacion: true };
   }
   
