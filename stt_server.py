@@ -89,29 +89,71 @@ def callback(indata, frames, time, status):
 @app.route("/listen", methods=["GET"])
 def listen():
     recognizer.Reset()
+    
+    # Limpiar la cola antes de empezar
+    while not q.empty():
+        try:
+            q.get_nowait()
+        except queue.Empty:
+            break
+    
+    stream = None
     try:
         # Calcular blocksize apropiado para el sample rate
         blocksize = int(sample_rate * 0.5)  # 0.5 segundos de buffer
         
-        with sd.RawInputStream(
+        stream = sd.RawInputStream(
             samplerate=sample_rate,
             blocksize=blocksize,
             dtype="int16",
             channels=1,
             callback=callback,
             device=audio_device,  # Usar el dispositivo detectado
-        ):
-            print(f"⏺ Escuchando en {sample_rate} Hz...")
-            while True:
-                data = q.get()
+        )
+        
+        stream.start()
+        print(f"⏺ Escuchando en {sample_rate} Hz...")
+        
+        # Timeout de 30 segundos
+        import time
+        start_time = time.time()
+        timeout = 30
+        
+        while True:
+            if time.time() - start_time > timeout:
+                print("⏱️  Timeout alcanzado")
+                break
+                
+            try:
+                data = q.get(timeout=1)
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
                     if result.get("text", "").strip():
                         print(f"✅ Reconocido: {result['text']}")
                         return jsonify(result)
+            except queue.Empty:
+                continue
+                
     except Exception as e:
         print(f"❌ Error en captura de audio: {e}")
         return jsonify({"text": "", "error": str(e)})
+    finally:
+        # Asegurarse de cerrar el stream SIEMPRE
+        if stream is not None:
+            try:
+                stream.stop()
+                stream.close()
+            except:
+                pass
+        
+        # Limpiar la cola después
+        while not q.empty():
+            try:
+                q.get_nowait()
+            except queue.Empty:
+                break
+    
+    return jsonify({"text": ""})
 
 if __name__ == "__main__":
     print("Servidor Vosk STT iniciado en puerto 5005")
