@@ -93,7 +93,7 @@ function handleCommand(text) {
  */
 async function mainLoop() {
   console.log("╔══════════════════════════════════════════╗");
-  console.log("║        🤖 TOPIBOT INICIADO 🤖           ║");
+  console.log("║       🤖 TOPIBOT INICIADO 🤖            ║");
   console.log("╚══════════════════════════════════════════╝\n");
   
   console.log("📡 Conectando al servidor STT...");

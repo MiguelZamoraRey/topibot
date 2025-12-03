@@ -22,7 +22,7 @@
  * Palabra clave que debe decirse antes de cualquier comando
  * El sistema solo escuchará comandos después de detectar esta palabra
  */
-export const PALABRA_ACTIVACION = "topibot";
+export const PALABRA_ACTIVACION = "computadora";
 
 /**
  * Tiempo en milisegundos que el sistema permanece activo después de escuchar la palabra de activación
