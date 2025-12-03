@@ -27,6 +27,9 @@ Tú: "qué hora es"          →  🕐 La hora es: 14:30
 
 - ✅ **100% Offline** - No requiere internet
 - ✅ **Palabra de activación** - Solo responde cuando dices "topibot"
+- ✅ **Feedback sonoro** - Buzzer confirma activación con beep-beep
+- ✅ **Control GPIO** - LED y buzzer integrados
+- ✅ **Mensajes multi-paso** - Sistema conversacional para enviar mensajes
 - ✅ **Python 3.13 compatible** - Usa Docker automáticamente si es necesario
 - ✅ **Bajo consumo** - ~300 MB RAM en Raspberry Pi 3 B+
 - ✅ **Extensible** - Añade tus propios comandos fácilmente
@@ -129,12 +132,14 @@ sudo systemctl status topibot.service
 
 ## Control de Hardware (GPIO)
 
-TopiBot incluye control de LED mediante GPIO 17 (Pin físico 11):
+TopiBot incluye control de LED y buzzer mediante GPIO:
 
-### 🔌 Conexión del LED
+### 🔌 Conexión del Hardware
 
 ```
-Raspberry Pi GPIO 17 (Pin 11) → Resistor 220-330Ω → LED (+) → LED (-) → GND (Pin 6)
+GPIO 17 (Pin 11) → Resistor 220-330Ω → LED (+) → LED (-) → GND (Pin 6 o 9)
+GPIO 27 (Pin 13) → Buzzer (+)
+                   Buzzer (-) → GND (compartido)
 ```
 
 ### 💡 Comandos de LED
@@ -145,6 +150,23 @@ Raspberry Pi GPIO 17 (Pin 11) → Resistor 220-330Ω → LED (+) → LED (-) →
 "topibot" → "alternar"    # Cambia el estado
 "topibot" → "estado"      # Muestra si está encendido/apagado
 ```
+
+### 🔊 Buzzer de Feedback
+
+El buzzer emite un **beep-beep** automáticamente cuando dices "topibot" para confirmar que el sistema te está escuchando.
+
+### 📨 Sistema de Mensajes Multi-Paso
+
+```
+"topibot" → "mensaje" → "padre" → "hola papá, cómo estás"
+```
+
+Flujo:
+1. **Activación**: Di "topibot" (🔊 beep-beep)
+2. **Modo mensaje**: Di "mensaje"
+3. **Destinatario**: Di "padre", "madre" o "esther"
+4. **Mensaje**: Di el texto que quieres enviar
+5. Sistema captura y logea (preparado para Telegram/Discord)
 
 ### 🧪 Modo de Prueba (sin micrófono)
 

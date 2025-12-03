@@ -222,12 +222,9 @@ function beep(duracion = 100) {
   if (!gpioAvailable) return;
   
   try {
-    // Encender buzzer
-    execSync(`gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1`);
-    // Esperar la duración
-    execSync(`sleep ${duracion / 1000}`);
-    // Apagar buzzer
-    execSync(`gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0`);
+    // Comando completo en una sola línea con subshell en background
+    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep ${duracion / 1000} && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+    execSync(cmd);
   } catch (err) {
     console.log('⚠️  Error en buzzer:', err.message);
   }
@@ -244,11 +241,9 @@ export function sonidoActivacion() {
   
   try {
     console.log("🔊 Beep de activación");
-    // Beep corto
-    beep(80);
-    execSync('sleep 0.05');
-    // Beep más largo
-    beep(150);
+    // Beep corto y largo con pausa entre ellos
+    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.08 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+    execSync(cmd);
   } catch (err) {
     console.log('⚠️  Error en sonido de activación:', err.message);
   }
@@ -263,8 +258,13 @@ export function sonidoConfirmacion() {
     return;
   }
   
-  console.log("🔊 Beep de confirmación");
-  beep(100);
+  try {
+    console.log("🔊 Beep de confirmación");
+    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.1 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+    execSync(cmd);
+  } catch (err) {
+    console.log('⚠️  Error en sonido de confirmación:', err.message);
+  }
 }
 
 /**
@@ -278,10 +278,9 @@ export function sonidoError() {
   
   try {
     console.log("🔊 Beeps de error");
-    for (let i = 0; i < 3; i++) {
-      beep(50);
-      if (i < 2) execSync('sleep 0.05');
-    }
+    // 3 beeps rápidos
+    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+    execSync(cmd);
   } catch (err) {
     console.log('⚠️  Error en sonido de error:', err.message);
   }

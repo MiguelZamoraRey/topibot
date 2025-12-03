@@ -3,6 +3,30 @@
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
 
+## [1.3.0] - Diciembre 2025
+
+### ✨ Añadido
+
+- **Sistema de mensajes multi-paso**: Flujo conversacional para enviar mensajes
+  - Activación: "topibot" → "mensaje" → "padre/madre/esther" → "texto del mensaje"
+  - Estado de conversación persistente durante el flujo
+  - Mapeo de destinatarios con variaciones (papá/mamá/padre/madre)
+  - Preparado para integración futura con Telegram/Discord API
+  - Por ahora logea toda la información capturada
+
+- **Buzzer de feedback sonoro**: GPIO 27 (Pin 13)
+  - `sonidoActivacion()`: Beep doble al detectar palabra de activación "topibot"
+  - `sonidoConfirmacion()`: Beep simple para confirmaciones
+  - `sonidoError()`: 3 beeps rápidos para errores
+  - Ejecución en background sin bloquear comandos
+  - Feedback auditivo inmediato para mejor UX
+
+### 🔧 Arreglado
+
+- **GPIO buzzer**: Comandos ejecutados en background con subshell
+  - Evita bloqueo del sistema durante beeps
+  - Usa `(comando) &` para ejecución asíncrona
+
 ## [1.2.0] - Diciembre 2025
 
 ### 🔧 Arreglado
