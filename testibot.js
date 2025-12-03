@@ -76,7 +76,7 @@ function procesarTextoSimulado(texto) {
   // Si el sistema está activo, procesar comando
   if (sistemaActivo) {
     console.log("🎯 Sistema activo - Procesando comando...");
-    procesarComando(textoLower);
+    procesarComando(textoLower, sistemaActivo);
     
     // Resetear timeout después de ejecutar comando
     if (timeoutId) clearTimeout(timeoutId);
