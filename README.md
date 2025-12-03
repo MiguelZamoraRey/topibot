@@ -27,6 +27,7 @@ Tú: "qué hora es"          →  🕐 La hora es: 14:30
 
 - ✅ **100% Offline** - No requiere internet
 - ✅ **Palabra de activación** - Solo responde cuando dices "topibot"
+- ✅ **Python 3.13 compatible** - Usa Docker automáticamente si es necesario
 - ✅ **Bajo consumo** - ~300 MB RAM en Raspberry Pi 3 B+
 - ✅ **Extensible** - Añade tus propios comandos fácilmente
 - ✅ **Plug & Play** - Script de instalación automática
@@ -52,6 +53,8 @@ chmod +x install.sh
 ```
 
 El instalador se encarga de todo:
+- Detecta versión de Python (3.11, 3.13, etc.)
+- Instala Docker automáticamente si usa Python 3.13
 - Instala dependencias (Python, Node.js, ALSA)
 - Descarga el modelo de voz en español
 - Configura servicios systemd
@@ -175,8 +178,9 @@ export const TIEMPO_ESCUCHA_ACTIVA = 10000; // 10 segundos
 ## Requisitos
 
 - **Hardware**: Raspberry Pi 3 B+ o superior, Micrófono USB
-- **Software**: Node.js 16+, Python 3.7+
-- **OS**: Raspberry Pi OS (Bullseye o posterior)
+- **Software**: Node.js 16+, Python 3.7+ (Python 3.13 usa Docker automáticamente)
+- **OS**: Raspberry Pi OS (Bullseye, Bookworm o Trixie)
+- **Opcional**: Docker (se instala automáticamente si es necesario)
 
 ---
 
@@ -190,8 +194,11 @@ topibot/
 ├── acciones.js            # Funciones ejecutables
 ├── install.sh             # Instalador automático
 ├── verificar.sh           # Script de verificación
+├── Dockerfile             # Contenedor Python 3.11 (para Python 3.13)
+├── requirements-stt.txt   # Dependencias Python del STT
 ├── model/                 # Modelo Vosk (descargado por instalador)
-├── stt.service            # Servicio systemd Python
+├── stt.service            # Servicio systemd Python (venv)
+├── stt-docker.service     # Servicio systemd Python (Docker)
 ├── topibot.service        # Servicio systemd Node.js
 └── docs/
     └── GUIA_COMPLETA.md   # Documentación detallada
@@ -217,8 +224,18 @@ topibot/
 
 ### Servidor STT no arranca
 ```bash
-sudo systemctl start stt.service
+sudo systemctl status stt.service
 sudo journalctl -u stt.service -n 50
+
+# Si usas Docker (Python 3.13):
+sudo docker logs topibot-stt
+```
+
+### Python 3.13 detectado
+El instalador automáticamente usa Docker con Python 3.11. Si hay problemas:
+```bash
+sudo systemctl status docker
+sudo docker ps -a
 ```
 
 ### No detecta micrófono

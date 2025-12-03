@@ -2,6 +2,35 @@
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
 
+## [1.1.0] - Diciembre 2025
+
+### 🐳 Nuevo: Soporte Python 3.13 con Docker
+
+- **Compatibilidad Python 3.13**: Detección automática de Python 3.13 (incompatible con vosk)
+- **Solución Docker**: Instalación automática de Docker con contenedor Python 3.11
+- **Instalación inteligente**: El script detecta la versión de Python y elige:
+  - Python 3.11 o anterior → Virtual environment tradicional
+  - Python 3.13+ → Contenedor Docker con Python 3.11
+- **Nuevo archivo**: `Dockerfile` para construcción de imagen con Python 3.11
+- **Nuevo archivo**: `stt-docker.service` para gestión del contenedor
+- **Nuevo archivo**: `requirements-stt.txt` con dependencias Python del STT
+
+### 🔧 Arreglado
+
+- **Path del modelo**: `stt_server.py` ahora usa path relativo en lugar de hardcodeado
+  - Funciona en cualquier directorio de instalación
+  - Mejores mensajes de error al cargar el modelo
+- **Dependencias Node.js**: Eliminadas dependencias nativas problemáticas
+  - Removido: `vosk`, `mic`, `ffi-napi` (causaban errores de compilación)
+  - Mantenido: `axios` (comunicación HTTP con servidor STT)
+- **Compatibilidad**: Soporte para Raspberry Pi OS Trixie (Python 3.13 por defecto)
+
+### ⚡ Mejorado
+
+- **Instalador**: Detección automática de versión de Python
+- **Logs**: Mejores mensajes de error en servidor STT
+- **Rendimiento**: Sin overhead de compilación de dependencias nativas en Node.js
+
 ## [1.0.1] - Diciembre 2025
 
 ### 🔄 Cambiado
