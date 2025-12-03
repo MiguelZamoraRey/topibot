@@ -325,6 +325,25 @@ echo ""
 read -p "¿Deseas iniciar los servicios ahora? (s/n): " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[SsYy]$ ]]; then
+    # Aplicar fix para Python 3.13 si es necesario
+    if [ "$PYTHON_NEEDS_FIX" = true ]; then
+        echo ""
+        echo "🔧 Aplicando fix del kernel para Python 3.13..."
+        
+        # Deshabilitar ASLR para que libvosk.so funcione
+        CURRENT_ASLR=$(cat /proc/sys/kernel/randomize_va_space 2>/dev/null || echo "2")
+        if [ "$CURRENT_ASLR" != "0" ]; then
+            echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
+            print_status "ASLR deshabilitado temporalmente"
+            
+            # Hacer permanente
+            if ! sudo grep -q "kernel.randomize_va_space" /etc/sysctl.conf 2>/dev/null; then
+                echo "kernel.randomize_va_space = 0" | sudo tee -a /etc/sysctl.conf > /dev/null
+                print_status "Fix permanente aplicado (sobrevive reinicios)"
+            fi
+        fi
+    fi
+    
     echo "🚀 Iniciando servidor STT..."
     sudo systemctl start stt.service
     sleep 3
