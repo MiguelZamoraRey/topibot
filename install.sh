@@ -3,9 +3,17 @@
 
 set -e  # Salir si hay algún error
 
+# Detectar directorio del proyecto
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+USER_HOME="$HOME"
+CURRENT_USER="$USER"
+
 echo "╔══════════════════════════════════════════╗"
 echo "║   🤖 INSTALADOR DE TOPIBOT 🤖           ║"
 echo "╚══════════════════════════════════════════╝"
+echo ""
+echo "📁 Directorio del proyecto: $PROJECT_DIR"
+echo "👤 Usuario: $CURRENT_USER"
 echo ""
 
 # Colores para output
@@ -72,26 +80,26 @@ sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
 # Crear virtual environment
 echo ""
 echo "🐍 Creando entorno virtual Python..."
-if [ -d "/home/pi/topibot/venv" ]; then
+if [ -d "$PROJECT_DIR/venv" ]; then
     print_warning "Virtual environment ya existe, recreando..."
-    rm -rf /home/pi/topibot/venv
+    rm -rf "$PROJECT_DIR/venv"
 fi
 
-python3 -m venv /home/pi/topibot/venv
+python3 -m venv "$PROJECT_DIR/venv"
 print_status "Virtual environment creado"
 
 # Instalar dependencias Python en venv
 echo ""
 echo "📦 Instalando dependencias Python en venv..."
-/home/pi/topibot/venv/bin/pip install --upgrade pip
-/home/pi/topibot/venv/bin/pip install vosk sounddevice flask
+"$PROJECT_DIR/venv/bin/pip" install --upgrade pip
+"$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
 
 print_status "Dependencias Python instaladas en venv"
 
 # Instalar dependencias Node.js
 echo ""
 echo "📦 Instalando dependencias Node.js..."
-cd /home/pi/topibot
+cd "$PROJECT_DIR"
 npm install
 
 print_status "Dependencias Node.js instaladas"
@@ -99,19 +107,20 @@ print_status "Dependencias Node.js instaladas"
 # Verificar modelo Vosk
 echo ""
 echo "🔍 Verificando modelo Vosk..."
-if [ -d "/home/pi/topibot/model/am" ] && [ -d "/home/pi/topibot/model/conf" ]; then
+if [ -d "$PROJECT_DIR/model/am" ] && [ -d "$PROJECT_DIR/model/conf" ]; then
     print_status "Modelo Vosk encontrado ✓"
 else
     print_warning "Modelo Vosk NO encontrado"
     echo ""
     echo "📥 Descargando modelo Vosk español..."
-    cd /home/pi/topibot
+    cd "$PROJECT_DIR"
     wget -q --show-progress https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip
     
     echo "📦 Descomprimiendo modelo..."
     unzip -q vosk-model-small-es-0.42.zip
     
     echo "📁 Moviendo archivos..."
+    mkdir -p model
     mv vosk-model-small-es-0.42/* model/
     
     echo "🧹 Limpiando archivos temporales..."
@@ -134,8 +143,15 @@ fi
 # Copiar servicios systemd
 echo ""
 echo "⚙️  Configurando servicios systemd..."
-sudo cp /home/pi/topibot/stt.service /etc/systemd/system/
-sudo cp /home/pi/topibot/topibot.service /etc/systemd/system/
+
+# Crear servicios temporales con rutas correctas
+sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g" "$PROJECT_DIR/stt.service" > /tmp/stt.service.tmp
+sed "s|/home/pi/topibot|$PROJECT_DIR|g; s|User=pi|User=$CURRENT_USER|g" "$PROJECT_DIR/topibot.service" > /tmp/topibot.service.tmp
+
+sudo cp /tmp/stt.service.tmp /etc/systemd/system/stt.service
+sudo cp /tmp/topibot.service.tmp /etc/systemd/system/topibot.service
+
+rm /tmp/stt.service.tmp /tmp/topibot.service.tmp
 
 sudo systemctl daemon-reload
 

@@ -1,9 +1,14 @@
 #!/bin/bash
 # Script de verificación rápida del sistema TopiBot
 
+# Detectar directorio del proyecto
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 echo "╔══════════════════════════════════════════╗"
 echo "║   🔍 VERIFICACIÓN TOPIBOT 🔍            ║"
 echo "╚══════════════════════════════════════════╝"
+echo ""
+echo "📁 Directorio del proyecto: $PROJECT_DIR"
 echo ""
 
 # Colores
@@ -52,7 +57,7 @@ fi
 
 echo ""
 echo "3️⃣  Verificando virtual environment..."
-if [ -d "/home/pi/topibot/venv" ]; then
+if [ -d "$PROJECT_DIR/venv" ]; then
     check_pass "Virtual environment existe"
 else
     check_fail "Virtual environment no existe - ejecuta ./install.sh"
@@ -60,20 +65,20 @@ fi
 
 echo ""
 echo "4️⃣  Verificando paquetes Python en venv..."
-if [ -f "/home/pi/topibot/venv/bin/pip" ]; then
-    if /home/pi/topibot/venv/bin/pip list 2>/dev/null | grep -q "vosk"; then
+if [ -f "$PROJECT_DIR/venv/bin/pip" ]; then
+    if "$PROJECT_DIR/venv/bin/pip" list 2>/dev/null | grep -q "vosk"; then
         check_pass "vosk instalado en venv"
     else
         check_fail "vosk no instalado - ejecuta ./install.sh"
     fi
 
-    if /home/pi/topibot/venv/bin/pip list 2>/dev/null | grep -q "sounddevice"; then
+    if "$PROJECT_DIR/venv/bin/pip" list 2>/dev/null | grep -q "sounddevice"; then
         check_pass "sounddevice instalado en venv"
     else
         check_fail "sounddevice no instalado - ejecuta ./install.sh"
     fi
 
-    if /home/pi/topibot/venv/bin/pip list 2>/dev/null | grep -q "Flask"; then
+    if "$PROJECT_DIR/venv/bin/pip" list 2>/dev/null | grep -q "Flask"; then
         check_pass "flask instalado en venv"
     else
         check_fail "flask no instalado - ejecuta ./install.sh"
@@ -84,7 +89,7 @@ fi
 
 echo ""
 echo "5️⃣  Verificando paquetes Node.js..."
-cd /home/pi/topibot 2>/dev/null || cd "$(dirname "$0")"
+cd "$PROJECT_DIR"
 
 if [ -f "package.json" ]; then
     if npm list axios &>/dev/null; then
@@ -100,7 +105,7 @@ echo ""
 echo "6️⃣  Verificando archivos del proyecto..."
 FILES=("stt_server.py" "index.js" "comandos.js" "acciones.js" "package.json")
 for file in "${FILES[@]}"; do
-    if [ -f "$file" ]; then
+    if [ -f "$PROJECT_DIR/$file" ]; then
         check_pass "$file existe"
     else
         check_fail "$file no encontrado"
@@ -109,7 +114,7 @@ done
 
 echo ""
 echo "7️⃣  Verificando modelo Vosk..."
-if [ -d "model/am" ] && [ -d "model/conf" ]; then
+if [ -d "$PROJECT_DIR/model/am" ] && [ -d "$PROJECT_DIR/model/conf" ]; then
     check_pass "Modelo Vosk instalado en model/"
 else
     check_fail "Modelo Vosk no encontrado en model/"

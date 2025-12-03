@@ -38,9 +38,11 @@ Tú: "qué hora es"          →  🕐 La hora es: 14:30
 ### 1. Clonar en tu Raspberry Pi
 
 ```bash
-git clone <tu-repo> /home/pi/topibot
-cd /home/pi/topibot
+git clone <tu-repo> ~/topibot
+cd ~/topibot
 ```
+
+> 💡 **Nota**: Puedes clonar el proyecto en cualquier directorio. Los scripts detectan automáticamente la ubicación.
 
 ### 2. Ejecutar instalador
 
