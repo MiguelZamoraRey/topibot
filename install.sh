@@ -185,7 +185,14 @@ fi
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils gpiod
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils gpiod pigpio
+
+# Habilitar y arrancar daemon de pigpio para control PWM del buzzer
+if command -v pigpiod &> /dev/null; then
+    sudo systemctl enable pigpiod 2>/dev/null || true
+    sudo systemctl start pigpiod 2>/dev/null || true
+    print_status "Daemon pigpio iniciado (para buzzer pasivo PWM)"
+fi
 
 # Crear virtual environment
 echo ""
@@ -283,6 +290,14 @@ cd "$PROJECT_DIR"
 npm install
 
 print_status "Dependencias Node.js instaladas"
+
+# Verificar pigpio para buzzer
+if [ -d "$PROJECT_DIR/node_modules/pigpio" ]; then
+    print_status "Librería pigpio instalada (soporte buzzer pasivo PWM)"
+else
+    print_warning "pigpio no instalado - buzzer usará modo simple"
+    print_warning "Para buzzer pasivo ejecuta: npm install pigpio"
+fi
 
 # Verificar modelo Vosk
 echo ""

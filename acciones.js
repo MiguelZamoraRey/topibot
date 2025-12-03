@@ -8,14 +8,27 @@
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 
+// Intentar importar pigpio para control PWM del buzzer
+let Gpio = null;
+let pigpioAvailable = false;
+try {
+  const pigpioModule = await import('pigpio');
+  Gpio = pigpioModule.Gpio;
+  pigpioAvailable = true;
+} catch (err) {
+  // pigpio no disponible, usaremos método simple
+}
+
 // ========================================
 // CONFIGURACIÓN GPIO
 // ========================================
 
 const LED_PIN = 17; // GPIO 17 (Pin físico 11)
 const BUZZER_PIN = 22; // GPIO 22 (Pin físico 15)
+const BUZZER_FREQUENCY = 2000; // 2000Hz para buzzer pasivo
 const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
 let gpioAvailable = false;
+let buzzerPwm = null;
 
 // Verificar si gpiod está disponible
 try {
@@ -24,7 +37,15 @@ try {
   // Verificar que el chip GPIO existe
   if (existsSync('/dev/gpiochip0')) {
     gpioAvailable = true;
-    console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer en GPIO 22');
+    
+    // Inicializar PWM del buzzer si pigpio está disponible
+    if (pigpioAvailable && Gpio) {
+      buzzerPwm = new Gpio(BUZZER_PIN, { mode: Gpio.OUTPUT });
+      console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer PWM en GPIO 22');
+    } else {
+      console.log('✅ GPIO inicializado - LED en GPIO 17, Buzzer simple en GPIO 22');
+      console.log('   💡 Para buzzer pasivo instala: npm install pigpio && sudo apt install pigpio');
+    }
   }
 } catch (err) {
   console.log('⚠️  GPIO no disponible - Modo simulación');
@@ -215,23 +236,32 @@ export function toggleLED() {
 // ========================================
 
 /**
- * Emite un beep corto con el buzzer
+ * Emite un beep con PWM o método simple según disponibilidad
  * @param {number} duracion - Duración del beep en milisegundos
  */
 function beep(duracion = 100) {
   if (!gpioAvailable) return;
   
   try {
-    // Comando completo en una sola línea con subshell en background
-    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep ${duracion / 1000} && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
-    execSync(cmd);
+    if (pigpioAvailable && buzzerPwm) {
+      // Usar PWM para buzzer pasivo
+      buzzerPwm.pwmFrequency(BUZZER_FREQUENCY);
+      buzzerPwm.pwmWrite(128); // 50% duty cycle (255/2)
+      setTimeout(() => {
+        buzzerPwm.pwmWrite(0); // Apagar
+      }, duracion);
+    } else {
+      // Fallback: método simple para buzzer activo
+      const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep ${duracion / 1000} && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+      execSync(cmd);
+    }
   } catch (err) {
     console.log('⚠️  Error en buzzer:', err.message);
   }
 }
 
 /**
- * Sonido de activación - Beep doble ascendente
+ * Sonido de activación - Beep doble
  */
 export function sonidoActivacion() {
   if (!gpioAvailable) {
@@ -241,9 +271,25 @@ export function sonidoActivacion() {
   
   try {
     console.log("🔊 Beep de activación");
-    // Beep corto y largo con pausa entre ellos
-    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.08 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
-    execSync(cmd);
+    
+    if (pigpioAvailable && buzzerPwm) {
+      // Beep corto + pausa + beep largo con PWM
+      buzzerPwm.pwmFrequency(BUZZER_FREQUENCY);
+      buzzerPwm.pwmWrite(128);
+      setTimeout(() => {
+        buzzerPwm.pwmWrite(0);
+        setTimeout(() => {
+          buzzerPwm.pwmWrite(128);
+          setTimeout(() => {
+            buzzerPwm.pwmWrite(0);
+          }, 150);
+        }, 50);
+      }, 80);
+    } else {
+      // Fallback: método simple
+      const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.08 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+      execSync(cmd);
+    }
   } catch (err) {
     console.log('⚠️  Error en sonido de activación:', err.message);
   }
@@ -260,8 +306,7 @@ export function sonidoConfirmacion() {
   
   try {
     console.log("🔊 Beep de confirmación");
-    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.1 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
-    execSync(cmd);
+    beep(100); // Usa la función beep que ya tiene PWM/fallback
   } catch (err) {
     console.log('⚠️  Error en sonido de confirmación:', err.message);
   }
@@ -277,10 +322,32 @@ export function sonidoError() {
   }
   
   try {
-    console.log("🔊 Beeps de error");
-    // 3 beeps rápidos
-    const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
-    execSync(cmd);
+    console.log("🔊 Beep de error");
+    
+    if (pigpioAvailable && buzzerPwm) {
+      // Tres beeps cortos con PWM
+      buzzerPwm.pwmFrequency(BUZZER_FREQUENCY);
+      buzzerPwm.pwmWrite(128);
+      setTimeout(() => {
+        buzzerPwm.pwmWrite(0);
+        setTimeout(() => {
+          buzzerPwm.pwmWrite(128);
+          setTimeout(() => {
+            buzzerPwm.pwmWrite(0);
+            setTimeout(() => {
+              buzzerPwm.pwmWrite(128);
+              setTimeout(() => {
+                buzzerPwm.pwmWrite(0);
+              }, 50);
+            }, 30);
+          }, 50);
+        }, 30);
+      }, 50);
+    } else {
+      // Fallback: método simple
+      const cmd = `(gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.03 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.03 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.05 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0) &`;
+      execSync(cmd);
+    }
   } catch (err) {
     console.log('⚠️  Error en sonido de error:', err.message);
   }

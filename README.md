@@ -138,9 +138,13 @@ TopiBot incluye control de LED y buzzer mediante GPIO:
 
 ```
 GPIO 17 (Pin 11) → Resistor 220-330Ω → LED (+) → LED (-) → GND (Pin 6 o 9)
-GPIO 27 (Pin 13) → Buzzer (+)
+GPIO 22 (Pin 15) → Buzzer (+)
                    Buzzer (-) → GND (compartido)
 ```
+
+**Tipos de Buzzer soportados:**
+- **Buzzer Activo**: Control ON/OFF simple (fallback automático)
+- **Buzzer Pasivo**: Control PWM a 2000Hz (requiere librería `pigpio`)
 
 ### 💡 Comandos de LED
 
@@ -154,6 +158,17 @@ GPIO 27 (Pin 13) → Buzzer (+)
 ### 🔊 Buzzer de Feedback
 
 El buzzer emite un **beep-beep** automáticamente cuando dices "topibot" para confirmar que el sistema te está escuchando.
+
+**Instalación para buzzer pasivo (PWM):**
+```bash
+# En la Raspberry Pi
+npm install pigpio
+sudo apt install pigpio
+```
+
+El sistema detecta automáticamente el tipo de buzzer y usa:
+- **PWM** si está disponible (ideal para buzzers pasivos)
+- **ON/OFF simple** como fallback (para buzzers activos)
 
 ### 📨 Sistema de Mensajes Multi-Paso
 

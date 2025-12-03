@@ -14,7 +14,10 @@ Todos los cambios notables del proyecto se documentarán en este archivo.
   - Preparado para integración futura con Telegram/Discord API
   - Por ahora logea toda la información capturada
 
-- **Buzzer de feedback sonoro**: GPIO 27 (Pin 13)
+- **Buzzer PWM con fallback automático**: GPIO 22 (Pin 15)
+  - Soporte para **buzzer pasivo** (PWM a 2000Hz) usando librería `pigpio`
+  - Fallback automático a control simple para **buzzer activo**
+  - Detección automática del tipo de control disponible
   - `sonidoActivacion()`: Beep doble al detectar palabra de activación "topibot"
   - `sonidoConfirmacion()`: Beep simple para confirmaciones
   - `sonidoError()`: 3 beeps rápidos para errores
@@ -23,9 +26,16 @@ Todos los cambios notables del proyecto se documentarán en este archivo.
 
 ### 🔧 Arreglado
 
-- **GPIO buzzer**: Comandos ejecutados en background con subshell
+- **GPIO buzzer**: Migrado de GPIO 27 a GPIO 22 (Pin 15)
+  - Soluciona error "Device or resource busy" en GPIO 27
+  - Comandos ejecutados en background con subshell
   - Evita bloqueo del sistema durante beeps
   - Usa `(comando) &` para ejecución asíncrona
+  
+- **Buzzer pasivo**: Implementado control PWM desde Node.js
+  - Integración con librería `pigpio` para modulación PWM
+  - Frecuencia configurable (2000Hz por defecto)
+  - Duty cycle 50% para volumen óptimo
 
 ## [1.2.0] - Diciembre 2025
 
