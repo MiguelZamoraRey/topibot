@@ -210,7 +210,15 @@ print_status "Virtual environment creado con $PYTHON_CMD"
 echo ""
 echo "📦 Instalando dependencias Python en venv..."
 "$PROJECT_DIR/venv/bin/pip" install --upgrade pip
-"$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+
+# Verificar versión de Python e instalar vosk apropiadamente
+VENV_PYTHON_VER=$("$PROJECT_DIR/venv/bin/python3" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+if [[ "$VENV_PYTHON_VER" == "3.13" ]]; then
+    print_warning "Python 3.13 detectado - Instalando vosk desde GitHub (versión más reciente)"
+    "$PROJECT_DIR/venv/bin/pip" install git+https://github.com/alphacep/vosk-api.git@master#subdirectory=python sounddevice flask
+else
+    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
+fi
 
 print_status "Dependencias Python instaladas en venv"
 
