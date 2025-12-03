@@ -139,17 +139,48 @@ for py_version in python3.8 python3.11 python3.12 python3.10 python3.9 python3; 
 done
 
 if [ -z "$PYTHON_CMD" ]; then
-    print_error "No se encontró una versión compatible de Python 3"
-    print_error "Python 3.13+ tiene problemas con libvosk.so"
-    echo "Instala Python 3.8-3.12: sudo apt install python3.8 python3.8-venv python3.8-dev"
-    exit 1
+    print_error "No se encontró una versión compatible de Python 3 (< 3.13)"
+    print_warning "Python 3.13+ tiene problemas con libvosk.so"
+    echo ""
+    echo "Intentando instalar Python 3.11 con pyenv..."
+    
+    # Instalar pyenv si no está instalado
+    if ! command -v pyenv &> /dev/null; then
+        echo "📦 Instalando dependencias para compilar Python..."
+        sudo apt install -y build-essential libssl-dev zlib1g-dev \
+            libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+            libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
+            libffi-dev liblzma-dev
+        
+        echo "📥 Instalando pyenv..."
+        curl https://pyenv.run | bash
+        
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        eval "$(pyenv init -)"
+        
+        echo "📥 Instalando Python 3.11.9 con pyenv..."
+        pyenv install 3.11.9
+        pyenv local 3.11.9
+        
+        PYTHON_CMD="python3"
+        print_status "Python 3.11.9 instalado con pyenv ✓"
+    else
+        print_error "Por favor instala Python 3.8-3.12 manualmente"
+        exit 1
+    fi
 fi
 
 # Instalar dependencias del sistema
 echo ""
 echo "📦 Instalando dependencias del sistema..."
 sudo apt update
-sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils python3.8 python3.8-venv python3.8-dev 2>/dev/null || true
+sudo apt install -y portaudio19-dev python3-dev python3-venv alsa-utils
+
+# Intentar instalar Python 3.8-3.12 si están disponibles
+for py_ver in 3.8 3.9 3.10 3.11 3.12; do
+    sudo apt install -y python$py_ver python$py_ver-venv python$py_ver-dev 2>/dev/null || true
+done
 
 # Crear virtual environment
 echo ""
