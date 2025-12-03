@@ -159,16 +159,37 @@ GPIO 22 (Pin 15) → Buzzer (+)
 
 El buzzer emite un **beep-beep** automáticamente cuando dices "topibot" para confirmar que el sistema te está escuchando.
 
-**Instalación para buzzer pasivo (PWM):**
+**El sistema soporta ambos tipos de buzzer:**
+- **Buzzer Activo**: Funciona automáticamente con control ON/OFF simple
+- **Buzzer Pasivo**: Requiere PWM (se instala automáticamente con `install.sh`)
+
+**Si el buzzer no suena:**
 ```bash
-# En la Raspberry Pi
+# 1. Verifica que pigpio esté instalado (lo hace install.sh)
+sudo systemctl status pigpiod
+
+# 2. Prueba con Python
+python3 << EOF
+import RPi.GPIO as GPIO
+import time
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(22, GPIO.OUT)
+pwm = GPIO.PWM(22, 2000)
+pwm.start(50)
+time.sleep(1)
+pwm.stop()
+GPIO.cleanup()
+EOF
+
+# 3. Si suena con Python pero no con TopiBot, reinstala dependencias:
+cd ~/topibot
 npm install pigpio
-sudo apt install pigpio
+sudo systemctl restart topibot.service
 ```
 
-El sistema detecta automáticamente el tipo de buzzer y usa:
-- **PWM** si está disponible (ideal para buzzers pasivos)
-- **ON/OFF simple** como fallback (para buzzers activos)
+**Troubleshooting:**
+- Si no suena → Prueba invertir la polaridad (+ y -)
+- Si sigue sin sonar → El buzzer puede estar roto o necesitar 5V en lugar de 3.3V
 
 ### 📨 Sistema de Mensajes Multi-Paso
 
