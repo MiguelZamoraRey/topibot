@@ -1,15 +1,19 @@
 [Unit]
 Description=TopiBot Node Service
-After=network.target stt.service
+After=network.target stt.service pigpiod.service
 Requires=stt.service
 
 [Service]
-User=ainhur
+Type=simple
+User=root
+Group=root
 WorkingDirectory=/home/ainhur/Documents/topibot
 ExecStart=/usr/bin/node /home/ainhur/Documents/topibot/index.js
 Restart=always
 RestartSec=2
 Environment=NODE_ENV=production
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
