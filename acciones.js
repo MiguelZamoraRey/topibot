@@ -5,6 +5,26 @@
  * Cada función debe ser autocontenida y realizar una acción específica.
  */
 
+import { Gpio } from 'onoff';
+
+// ========================================
+// CONFIGURACIÓN GPIO
+// ========================================
+
+const LED_PIN = 17; // GPIO 17 (Pin físico 11)
+let led;
+
+// Inicializar GPIO solo en Raspberry Pi
+try {
+  if (Gpio.accessible) {
+    led = new Gpio(LED_PIN, 'out');
+    console.log('✅ GPIO inicializado - LED en GPIO 17');
+  }
+} catch (err) {
+  console.log('⚠️  GPIO no disponible - Modo simulación');
+  led = null;
+}
+
 // ========================================
 // ESTADO GLOBAL
 // ========================================
@@ -20,6 +40,9 @@ let ledState = false;
  */
 export function encenderLED() {
   ledState = true;
+  if (led) {
+    led.writeSync(1); // Enciende GPIO
+  }
   console.log("💡 LED encendido");
 }
 
@@ -28,6 +51,9 @@ export function encenderLED() {
  */
 export function apagarLED() {
   ledState = false;
+  if (led) {
+    led.writeSync(0); // Apaga GPIO
+  }
   console.log("🌑 LED apagado");
 }
 
@@ -43,6 +69,9 @@ export function obtenerEstadoLED() {
  */
 export function toggleLED() {
   ledState = !ledState;
+  if (led) {
+    led.writeSync(ledState ? 1 : 0);
+  }
   console.log(`🔄 LED ${ledState ? "encendido" : "apagado"}`);
 }
 
@@ -144,3 +173,24 @@ export function leerTemperatura() {
   const temperaturaSimulada = (20 + Math.random() * 10).toFixed(1);
   console.log(`🌡️  Temperatura: ${temperaturaSimulada}°C`);
 }
+
+// ========================================
+// LIMPIEZA AL SALIR
+// ========================================
+
+/**
+ * Limpia los recursos GPIO al cerrar la aplicación
+ */
+export function cleanup() {
+  if (led) {
+    led.writeSync(0); // Apaga el LED
+    led.unexport(); // Libera el GPIO
+    console.log('🧹 GPIO limpiado');
+  }
+}
+
+// Manejar cierre de aplicación
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit();
+});
