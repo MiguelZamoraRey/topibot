@@ -29,6 +29,35 @@ except Exception as e:
     print(f"💡 Path del modelo: {model_path}", file=sys.stderr)
     sys.exit(1)
 
+# Detectar micrófono USB automáticamente
+def find_usb_microphone():
+    """Encuentra el primer micrófono USB disponible"""
+    devices = sd.query_devices()
+    print("\n🎤 Dispositivos de audio disponibles:")
+    for i, device in enumerate(devices):
+        print(f"  [{i}] {device['name']} - In: {device['max_input_channels']}, Out: {device['max_output_channels']}")
+    
+    # Buscar dispositivo USB con entrada
+    for i, device in enumerate(devices):
+        name = device['name'].lower()
+        if device['max_input_channels'] > 0 and ('usb' in name or 'pnp' in name):
+            print(f"\n✅ Micrófono USB detectado: [{i}] {device['name']}")
+            return i
+    
+    # Si no encuentra USB, usar el primer dispositivo con entrada
+    for i, device in enumerate(devices):
+        if device['max_input_channels'] > 0:
+            print(f"\n⚠️  Usando primer dispositivo con entrada: [{i}] {device['name']}")
+            return i
+    
+    print("\n❌ ERROR: No se encontró ningún dispositivo de entrada de audio")
+    return None
+
+# Detectar dispositivo de audio
+audio_device = find_usb_microphone()
+if audio_device is None:
+    sys.exit(1)
+
 q = queue.Queue()
 
 def callback(indata, frames, time, status):
@@ -44,6 +73,7 @@ def listen():
             dtype="int16",
             channels=1,
             callback=callback,
+            device=audio_device,  # Usar el dispositivo detectado
         ):
             print("⏺ Escuchando…")
             while True:
