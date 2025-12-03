@@ -158,17 +158,28 @@ for py_version in python3.12 python3.11 python3.10 python3.9 python3.8 python3; 
         PY_MINOR=$(echo $PY_VER | cut -d. -f2)
         
         if [ "$PY_MAJOR" -eq 3 ]; then
-            PYTHON_CMD=$py_version
-            PYTHON_VER=$PY_VER
-            
-            # Python 3.13+ necesita fix con execstack
+            # Python 3.13+ NO es compatible con vosk, instalar Python 3.11
             if [ "$PY_MINOR" -ge 13 ]; then
-                PYTHON_NEEDS_FIX=true
-                print_warning "Python $PY_VER detectado - Requiere fix para libvosk.so"
+                print_warning "⚠️  Python $PY_VER detectado - NO compatible con vosk"
+                echo "📦 Instalando Python 3.11 (compatible con vosk)..."
+                sudo apt update
+                sudo apt install -y python3.11 python3.11-venv python3.11-dev
+                
+                if command -v python3.11 &> /dev/null; then
+                    PYTHON_CMD="python3.11"
+                    PYTHON_VER="3.11"
+                    print_status "✅ Python 3.11 instalado correctamente"
+                    break
+                else
+                    print_error "No se pudo instalar Python 3.11"
+                    exit 1
+                fi
             else
+                PYTHON_CMD=$py_version
+                PYTHON_VER=$PY_VER
                 print_status "Python $PY_VER ($py_version) - Compatible ✓"
+                break
             fi
-            break
         fi
     fi
 done
@@ -199,48 +210,9 @@ print_status "Virtual environment creado con $PYTHON_CMD"
 echo ""
 echo "📦 Instalando dependencias Python en venv..."
 "$PROJECT_DIR/venv/bin/pip" install --upgrade pip
-
-# Para Python 3.13+, usar vosk 0.3.45 que tiene mejor compatibilidad
-if [ "$PYTHON_NEEDS_FIX" = true ]; then
-    print_warning "Instalando vosk 0.3.45 (compatible con Python 3.13)"
-    "$PROJECT_DIR/venv/bin/pip" install vosk==0.3.45 sounddevice flask
-else
-    "$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
-fi
+"$PROJECT_DIR/venv/bin/pip" install vosk sounddevice flask
 
 print_status "Dependencias Python instaladas en venv"
-
-# Aplicar fix para Python 3.13+ si es necesario
-if [ "$PYTHON_NEEDS_FIX" = true ]; then
-    echo ""
-    echo "🔧 Aplicando workarounds para Python $PYTHON_VER con libvosk.so..."
-    
-    # Fix 1: Deshabilitar ASLR (Address Space Layout Randomization)
-    CURRENT_ASLR=$(cat /proc/sys/kernel/randomize_va_space 2>/dev/null || echo "2")
-    if [ "$CURRENT_ASLR" != "0" ]; then
-        echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-        print_status "ASLR deshabilitado temporalmente"
-        
-        # Hacer permanente en /etc/sysctl.conf
-        if ! sudo grep -q "^kernel.randomize_va_space" /etc/sysctl.conf 2>/dev/null; then
-            echo "kernel.randomize_va_space = 0" | sudo tee -a /etc/sysctl.conf > /dev/null
-            print_status "Fix permanente aplicado en /etc/sysctl.conf"
-        fi
-    fi
-    
-    LIBVOSK_PATH=$(find "$PROJECT_DIR/venv" -name "libvosk.so" 2>/dev/null | head -1)
-    
-    if [ -n "$LIBVOSK_PATH" ]; then
-        # Fix 2: Intentar con execstack si está disponible
-        if command -v execstack &> /dev/null; then
-            sudo execstack -c "$LIBVOSK_PATH" 2>/dev/null && print_status "execstack aplicado" || true
-        fi
-        
-        print_status "Workarounds aplicados para Python 3.13"
-    else
-        print_warning "libvosk.so no encontrado aún, fix se aplicará al iniciar"
-    fi
-fi
 
 # Instalar dependencias Node.js
 echo ""
