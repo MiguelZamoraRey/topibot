@@ -98,6 +98,8 @@ def listen():
             break
     
     stream = None
+    recognized_result = None
+    
     try:
         # Calcular blocksize apropiado para el sample rate
         blocksize = int(sample_rate * 0.5)  # 0.5 segundos de buffer
@@ -130,7 +132,8 @@ def listen():
                     result = json.loads(recognizer.Result())
                     if result.get("text", "").strip():
                         print(f"✅ Reconocido: {result['text']}")
-                        return jsonify(result)
+                        recognized_result = result
+                        break
             except queue.Empty:
                 continue
                 
@@ -152,6 +155,10 @@ def listen():
                 q.get_nowait()
             except queue.Empty:
                 break
+    
+    # Devolver el resultado si se reconoció algo
+    if recognized_result:
+        return jsonify(recognized_result)
     
     return jsonify({"text": ""})
 
