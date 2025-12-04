@@ -80,7 +80,7 @@ export const comandos = [
     description: "Enciende el LED"
   },
   {
-    keywords: ["apagar", "apaga", "apagado", "a pagar", "off", "of"],
+    keywords: ["apagar", "apaga", "apagado", "a pagar", "off", "of","pagar"],
     action: apagarLED,
     description: "Apaga el LED"
   },
