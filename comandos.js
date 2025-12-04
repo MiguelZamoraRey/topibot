@@ -28,7 +28,7 @@ export const PALABRA_ACTIVACION = "computadora";
  * Tiempo en milisegundos que el sistema permanece activo después de escuchar la palabra de activación
  * Después de este tiempo, vuelve al modo espera
  */
-export const TIEMPO_ESCUCHA_ACTIVA = 5000; // 5 segundos
+export const TIEMPO_ESCUCHA_ACTIVA = 10000; // 10 segundos
 
 import {
   // Funciones de LED
@@ -75,12 +75,12 @@ export const comandos = [
   // COMANDOS DE LED
   // ========================================
   {
-    keywords: ["encender", "enciende", "prende", "prender"],
+    keywords: ["encender", "enciende", "prende", "prender", "luz", "encendido"],
     action: encenderLED,
     description: "Enciende el LED"
   },
   {
-    keywords: ["apagar", "apaga"],
+    keywords: ["apagar", "apaga", "apagado", "a pagar", "off", "of"],
     action: apagarLED,
     description: "Apaga el LED"
   },
@@ -113,17 +113,17 @@ export const comandos = [
   // COMANDOS DE INFORMACIÓN
   // ========================================
   {
-    keywords: ["hola", "buenos días", "buenas tardes", "buenas noches"],
+    keywords: ["hola", "buenos días", "buenas tardes", "buenas noches", "saludos"],
     action: saludar,
     description: "Saluda al usuario"
   },
   {
-    keywords: ["hora", "qué hora es", "que hora es"],
+    keywords: ["hora", "qué hora es", "que hora es", "dime la hora"],
     action: decirHora,
     description: "Dice la hora actual"
   },
   {
-    keywords: ["fecha", "qué día es", "que dia es"],
+    keywords: ["fecha", "qué día es", "que dia es", "día", "calendario"],
     action: decirFecha,
     description: "Dice la fecha actual"
   },
