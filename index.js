@@ -84,7 +84,7 @@ function handleCommand(text) {
     console.log("✅ Comando ejecutado");
     // Desactivar el sistema después de ejecutar el comando
     sistemaActivo = false;
-    console.log("⏸️  Sistema en espera - Di '%s' para activar", PALABRA_ACTIVACION);
+    console.log("⏸️  Sistema en espera - Di alguna palabra de activación para empezar");
   }
 }
 
