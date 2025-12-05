@@ -4,14 +4,14 @@
  * 
  * Uso:
  *   ./testibot.js "computadora"
- *   ./testibot.js "computadora" "encender"
+ *   ./testibot.js "asistente" "encender"
  *   ./testibot.js "hola"
  */
 
 import { 
   procesarComando, 
   mostrarComandosDisponibles,
-  PALABRA_ACTIVACION,
+  PALABRAS_ACTIVACION,
   TIEMPO_ESCUCHA_ACTIVA
 } from "./comandos.js";
 
@@ -54,7 +54,7 @@ function activarSistema() {
   if (timeoutId) clearTimeout(timeoutId);
   timeoutId = setTimeout(() => {
     sistemaActivo = false;
-    console.log("⏸️  Sistema DESACTIVADO - Di 'computadora' para activar");
+    console.log("⏸️  Sistema DESACTIVADO - Di alguna palabra de activación");
   }, TIEMPO_ESCUCHA_ACTIVA);
 }
 
@@ -66,9 +66,10 @@ function procesarTextoSimulado(texto) {
   
   const textoLower = texto.toLowerCase().trim();
   
-  // Verificar palabra de activación
-  if (textoLower.includes(PALABRA_ACTIVACION.toLowerCase())) {
-    console.log(`✅ Palabra de activación detectada: "${PALABRA_ACTIVACION}"`);
+  // Verificar si se dijo alguna palabra de activación
+  const palabraDetectada = PALABRAS_ACTIVACION.find(p => textoLower.includes(p.toLowerCase()));
+  if (palabraDetectada) {
+    console.log(`✅ Palabra de activación detectada: "${palabraDetectada}"`);
     activarSistema();
     return;
   }
@@ -82,10 +83,10 @@ function procesarTextoSimulado(texto) {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       sistemaActivo = false;
-      console.log("⏸️  Sistema DESACTIVADO - Di 'computadora' para activar");
+      console.log("⏸️  Sistema DESACTIVADO - Di alguna palabra de activación");
     }, TIEMPO_ESCUCHA_ACTIVA);
   } else {
-    console.log("⏸️  Sistema inactivo - Di 'computadora' primero para activar");
+    console.log("⏸️  Sistema inactivo - Di alguna palabra de activación primero");
   }
 }
 

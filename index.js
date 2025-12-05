@@ -9,7 +9,7 @@ import axios from "axios";
 import { 
   procesarComando, 
   mostrarComandosDisponibles,
-  PALABRA_ACTIVACION,
+  PALABRAS_ACTIVACION,
   TIEMPO_ESCUCHA_ACTIVA
 } from "./comandos.js";
 
@@ -57,7 +57,7 @@ function activarSistema() {
   
   timeoutEscucha = setTimeout(() => {
     sistemaActivo = false;
-    console.log("⏸️  Sistema en espera - Di '%s' para activar", PALABRA_ACTIVACION);
+    console.log("⏸️  Sistema en espera - Di alguna palabra de activación para empezar");
   }, TIEMPO_ESCUCHA_ACTIVA);
 }
 
@@ -97,11 +97,11 @@ async function mainLoop() {
   console.log("╚══════════════════════════════════════════╝\n");
   
   console.log("📡 Conectando al servidor STT...");
-  console.log("🎤 Palabra de activación: '%s'\n", PALABRA_ACTIVACION);
+  console.log("🎤 Palabras de activación: %s\n", PALABRAS_ACTIVACION.join(", "));
   
   mostrarComandosDisponibles();
   
-  console.log("\n⏸️  Sistema en espera - Di '%s' para activar\n", PALABRA_ACTIVACION);
+  console.log("\n⏸️  Sistema en espera - Di alguna palabra de activación para empezar\n");
   
   while (true) {
     const text = await listenSTT();

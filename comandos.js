@@ -19,10 +19,10 @@
 // ========================================
 
 /**
- * Palabra clave que debe decirse antes de cualquier comando
- * El sistema solo escuchará comandos después de detectar esta palabra
+ * Palabras clave de activación - Se puede usar cualquiera para activar el sistema
+ * El sistema solo escuchará comandos después de detectar alguna de estas palabras
  */
-export const PALABRA_ACTIVACION = "computadora";
+export const PALABRAS_ACTIVACION = ["computadora", "asistente", "ordenador", "máquina"];
 
 /**
  * Tiempo en milisegundos que el sistema permanece activo después de escuchar la palabra de activación
@@ -184,9 +184,10 @@ export const comandos = [
 export function procesarComando(texto, sistemaActivo = false) {
   const textoLower = texto.toLowerCase().trim();
   
-  // Verificar si se dijo la palabra de activación
-  if (textoLower.includes(PALABRA_ACTIVACION)) {
-    console.log("🎯 ¡Palabra de activación detectada! Sistema activo...");
+  // Verificar si se dijo alguna palabra de activación
+  const palabraDetectada = PALABRAS_ACTIVACION.find(palabra => textoLower.includes(palabra));
+  if (palabraDetectada) {
+    console.log(`🎯 ¡Palabra de activación detectada: "${palabraDetectada}"! Sistema activo...`);
     sonidoActivacion(); // 🔊 Beep de feedback
     return { ejecutado: false, activacion: true };
   }
@@ -238,7 +239,7 @@ export function procesarComando(texto, sistemaActivo = false) {
  */
 export function mostrarComandosDisponibles() {
   console.log("\n📋 Comandos disponibles:");
-  console.log(`   ⚡ Palabra de activación: "${PALABRA_ACTIVACION.toUpperCase()}"`);
+  console.log(`   ⚡ Palabras de activación: ${PALABRAS_ACTIVACION.map(p => `"${p.toUpperCase()}"`).join(", ")}`);
   console.log(`   ⏱️  Tiempo de escucha activa: ${TIEMPO_ESCUCHA_ACTIVA / 1000} segundos\n`);
   comandos.forEach((comando, index) => {
     console.log(`   ${index + 1}. ${comando.description}`);
