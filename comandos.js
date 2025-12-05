@@ -21,8 +21,30 @@
 /**
  * Palabras clave de activación - Se puede usar cualquiera para activar el sistema
  * El sistema solo escuchará comandos después de detectar alguna de estas palabras
+ * 
+ * Incluye variaciones que Vosk puede reconocer al decir "topibot":
+ * - Vosk intenta aproximar palabras desconocidas con palabras del diccionario español
+ * - "topibot" → "pivot", "tu pivot", "top pivot", etc.
  */
-export const PALABRAS_ACTIVACION = ["computadora", "asistente", "ordenador", "máquina"];
+export const PALABRAS_ACTIVACION = [
+  // Palabras genéricas claras
+  "computadora", 
+  "asistente", 
+  "ordenador", 
+  "máquina",
+  
+  // Variaciones de "topibot" que Vosk puede reconocer
+  "topibot",      // Ideal si lo reconoce directamente
+  "pivot",        // Muy común
+  "pívot",        // Con acento
+  "tu pivot",     // Variación frecuente
+  "tu pívot",
+  "top pivot",    // Otra variación común
+  "top pívot",
+  "to pivot",
+  "to pívot",
+  "topi",         // Versión acortada
+];
 
 /**
  * Tiempo en milisegundos que el sistema permanece activo después de escuchar la palabra de activación
