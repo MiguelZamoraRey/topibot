@@ -236,9 +236,9 @@ function beep(duracion = 100) {
   try {
     if (pigpioAvailable) {
       // Usar PWM con daemon pigpiod (comando pigs)
-      execSync(`pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128`, { stdio: 'ignore' });
+      execSync(`pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null`, { stdio: 'ignore' });
       setTimeout(() => {
-        execSync(`pigs hp ${BUZZER_PIN} 0 0`, { stdio: 'ignore' });
+        execSync(`pigs hp ${BUZZER_PIN} 0 0 2>/dev/null`, { stdio: 'ignore' });
       }, duracion);
     } else {
       // Fallback: método simple para buzzer activo
@@ -264,7 +264,8 @@ export function sonidoActivacion() {
     
     if (pigpioAvailable) {
       // Beep corto + pausa + beep largo con PWM usando daemon pigpiod
-      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.08 && pigs hp ${BUZZER_PIN} 0 0 && sleep 0.05 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.15 && pigs hp ${BUZZER_PIN} 0 0) &`;
+      // Redirigir stderr a /dev/null para silenciar "ERROR: GPIO has no hardware PWM"
+      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.08 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.15 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null) &`;
       execSync(cmd);
     } else {
       // Fallback: método simple
@@ -307,7 +308,7 @@ export function sonidoError() {
     
     if (pigpioAvailable) {
       // Tres beeps cortos con PWM usando daemon pigpiod
-      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0) &`;
+      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null) &`;
       execSync(cmd);
     } else {
       // Fallback: método simple
