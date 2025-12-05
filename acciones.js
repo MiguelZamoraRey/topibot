@@ -235,10 +235,10 @@ function beep(duracion = 100) {
   
   try {
     if (pigpioAvailable) {
-      // Usar PWM con daemon pigpiod (comando pigs)
-      execSync(`pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null`, { stdio: 'ignore' });
+      // Usar software PWM con daemon pigpiod (comando pigs p)
+      execSync(`pigs p ${BUZZER_PIN} 128`, { stdio: 'ignore' });
       setTimeout(() => {
-        execSync(`pigs hp ${BUZZER_PIN} 0 0 2>/dev/null`, { stdio: 'ignore' });
+        execSync(`pigs p ${BUZZER_PIN} 0`, { stdio: 'ignore' });
       }, duracion);
     } else {
       // Fallback: método simple para buzzer activo
@@ -263,9 +263,8 @@ export function sonidoActivacion() {
     console.log("🔊 Beep de activación");
     
     if (pigpioAvailable) {
-      // Beep corto + pausa + beep largo con PWM usando daemon pigpiod
-      // Redirigir stderr a /dev/null para silenciar "ERROR: GPIO has no hardware PWM"
-      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.08 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.15 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null) &`;
+      // Beep corto + pausa + beep largo con software PWM usando daemon pigpiod
+      const cmd = `(pigs p ${BUZZER_PIN} 128 && sleep 0.08 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 && pigs p ${BUZZER_PIN} 128 && sleep 0.15 && pigs p ${BUZZER_PIN} 0) &`;
       execSync(cmd);
     } else {
       // Fallback: método simple
@@ -307,8 +306,8 @@ export function sonidoError() {
     console.log("🔊 Beep de error");
     
     if (pigpioAvailable) {
-      // Tres beeps cortos con PWM usando daemon pigpiod
-      const cmd = `(pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null && sleep 0.03 && pigs hp ${BUZZER_PIN} ${BUZZER_FREQUENCY} 128 2>/dev/null && sleep 0.05 && pigs hp ${BUZZER_PIN} 0 0 2>/dev/null) &`;
+      // Tres beeps cortos con software PWM usando daemon pigpiod
+      const cmd = `(pigs p ${BUZZER_PIN} 128 && sleep 0.05 && pigs p ${BUZZER_PIN} 0 && sleep 0.03 && pigs p ${BUZZER_PIN} 128 && sleep 0.05 && pigs p ${BUZZER_PIN} 0 && sleep 0.03 && pigs p ${BUZZER_PIN} 128 && sleep 0.05 && pigs p ${BUZZER_PIN} 0) &`;
       execSync(cmd);
     } else {
       // Fallback: método simple
