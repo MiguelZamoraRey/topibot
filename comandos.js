@@ -52,6 +52,11 @@ export const PALABRAS_ACTIVACION = [
  */
 export const TIEMPO_ESCUCHA_ACTIVA = 10000; // 10 segundos
 
+/**
+ * Tiempo extendido para modo mensaje (mensajes pueden ser más largos)
+ */
+export const TIEMPO_ESCUCHA_MENSAJE = 20000; // 20 segundos
+
 import {
   // Funciones de LED
   encenderLED,

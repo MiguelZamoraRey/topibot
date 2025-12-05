@@ -137,6 +137,7 @@ export function enviarMensajeDiscord(texto) {
  */
 export function cancelarMensaje() {
   mensajeState.activo = false;
+  sonidoError(); // 🔊 Beep de cancelación
   console.log("❌ Modo mensaje CANCELADO");
 }
 

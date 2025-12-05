@@ -10,8 +10,10 @@ import {
   procesarComando, 
   mostrarComandosDisponibles,
   PALABRAS_ACTIVACION,
-  TIEMPO_ESCUCHA_ACTIVA
+  TIEMPO_ESCUCHA_ACTIVA,
+  TIEMPO_ESCUCHA_MENSAJE
 } from "./comandos.js";
+import { obtenerEstadoMensaje } from "./acciones.js";
 
 // Configuración
 const STT_SERVER_URL = "http://localhost:5005/listen";
@@ -48,7 +50,17 @@ async function listenSTT() {
  */
 function activarSistema() {
   sistemaActivo = true;
-  console.log("🟢 Sistema activado - Escuchando comando...");
+  const estadoMensaje = obtenerEstadoMensaje();
+  
+  // Usar tiempo extendido si está en modo mensaje
+  const tiempoEscucha = estadoMensaje.activo ? TIEMPO_ESCUCHA_MENSAJE : TIEMPO_ESCUCHA_ACTIVA;
+  const segundos = tiempoEscucha / 1000;
+  
+  if (estadoMensaje.activo) {
+    console.log(`🟢 Modo mensaje activo - Escuchando durante ${segundos} segundos...`);
+  } else {
+    console.log("🟢 Sistema activado - Escuchando comando...");
+  }
   
   // Desactivar después del tiempo configurado
   if (timeoutEscucha) {
@@ -57,8 +69,14 @@ function activarSistema() {
   
   timeoutEscucha = setTimeout(() => {
     sistemaActivo = false;
+    const estadoMensajeFinal = obtenerEstadoMensaje();
+    
+    if (estadoMensajeFinal.activo) {
+      console.log("⏱️  Tiempo agotado para mensaje - Modo mensaje cancelado");
+    }
+    
     console.log("⏸️  Sistema en espera - Di alguna palabra de activación para empezar");
-  }, TIEMPO_ESCUCHA_ACTIVA);
+  }, tiempoEscucha);
 }
 
 /**
@@ -82,9 +100,16 @@ function handleCommand(text) {
   // Si se ejecutó un comando
   if (resultado.ejecutado) {
     console.log("✅ Comando ejecutado");
-    // Desactivar el sistema después de ejecutar el comando
-    sistemaActivo = false;
-    console.log("⏸️  Sistema en espera - Di alguna palabra de activación para empezar");
+    
+    // Si no está en modo mensaje, desactivar el sistema
+    const estadoMensaje = obtenerEstadoMensaje();
+    if (!estadoMensaje.activo) {
+      sistemaActivo = false;
+      console.log("⏸️  Sistema en espera - Di alguna palabra de activación para empezar");
+    } else {
+      // En modo mensaje, reactivar para dar más tiempo
+      activarSistema();
+    }
   }
 }
 
