@@ -29,7 +29,7 @@ Tú: "qué hora es"          →  🕐 La hora es: 14:30
 - ✅ **Palabra de activación** - Solo responde cuando dices "topibot"
 - ✅ **Feedback sonoro** - Buzzer confirma activación con beep-beep
 - ✅ **Control GPIO** - LED y buzzer integrados
-- ✅ **Mensajes multi-paso** - Sistema conversacional para enviar mensajes
+- ✅ **Discord integrado** - Envía mensajes por voz directamente a Discord
 - ✅ **Python 3.13 compatible** - Usa Docker automáticamente si es necesario
 - ✅ **Bajo consumo** - ~300 MB RAM en Raspberry Pi 3 B+
 - ✅ **Extensible** - Añade tus propios comandos fácilmente
@@ -104,6 +104,11 @@ Micrófono → Python/Vosk → HTTP → Node.js → Acciones
 - **Hora**: "hora", "qué hora es"
 - **Fecha**: "fecha", "qué día es"
 
+### Mensajes Discord
+- **Enviar mensaje**: "topibot" → "mensaje" → (di tu mensaje)
+- **Ejemplo**: "topibot" → "mensaje" → "hola equipo, estoy en camino"
+- **Cancelar**: "cancelar mensaje"
+
 ### Sistema
 - **Info**: "información", "sistema"
 - **Reiniciar**: "reiniciar", "reset"
@@ -159,9 +164,9 @@ GPIO 22 (Pin 15) → Buzzer (+)
 
 El buzzer emite un **beep-beep** automáticamente cuando dices "topibot" para confirmar que el sistema te está escuchando.
 
-**El sistema soporta ambos tipos de buzzer:**
-- **Buzzer Activo**: Funciona automáticamente con control ON/OFF simple
-- **Buzzer Pasivo**: Usa PWM vía daemon `pigpiod` (se instala automáticamente con `install.sh`)
+**El sistema usa software PWM vía daemon `pigpiod`:**
+- Instalado automáticamente con `install.sh`
+- Comando: `pigs p 22 128` (software PWM en GPIO 22)
 
 **Si el buzzer no suena:**
 ```bash
@@ -169,31 +174,30 @@ El buzzer emite un **beep-beep** automáticamente cuando dices "topibot" para co
 sudo systemctl status pigpiod
 sudo systemctl start pigpiod  # Si no está activo
 
-# 2. Prueba con comando directo
-pigs hp 22 2000 128  # Encender PWM
+# 2. Prueba manual
+pigs p 22 128   # Encender PWM
 sleep 1
-pigs hp 22 0 0       # Apagar
+pigs p 22 0     # Apagar
 
 # 3. Si no funciona, verifica polaridad (intercambia + y -)
 ```
 
-**Troubleshooting:**
-- Si no suena → Prueba invertir la polaridad (+ y -)
-- Si sigue sin sonar → El buzzer puede estar roto o necesitar 5V en lugar de 3.3V
-- Verifica que `pigpiod` esté corriendo: `sudo systemctl status pigpiod`
+### 📨 Envío de Mensajes a Discord
 
-### 📨 Sistema de Mensajes Multi-Paso
+TopiBot puede enviar mensajes de voz directamente a un canal de Discord:
 
 ```
-"topibot" → "mensaje" → "padre" → "hola papá, cómo estás"
+"topibot" → "mensaje" → "hola equipo, estoy llegando tarde"
 ```
 
-Flujo:
+**Flujo simplificado:**
 1. **Activación**: Di "topibot" (🔊 beep-beep)
 2. **Modo mensaje**: Di "mensaje"
-3. **Destinatario**: Di "padre", "madre" o "esther"
-4. **Mensaje**: Di el texto que quieres enviar
-5. Sistema captura y logea (preparado para Telegram/Discord)
+3. **Dicta tu mensaje**: Todo lo que digas se enviará a Discord
+4. ✅ Beep de confirmación cuando se envíe exitosamente
+
+**Configuración del Webhook:**
+Edita `acciones.js` y cambia la constante `DISCORD_WEBHOOK` con tu URL de webhook de Discord.
 
 ### 🧪 Modo de Prueba (sin micrófono)
 

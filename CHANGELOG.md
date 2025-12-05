@@ -3,6 +3,37 @@
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
 
+## [1.4.0] - Diciembre 2025
+
+### ✨ Añadido
+
+- **Integración Discord**: Envío de mensajes por voz directamente a Discord
+  - Webhook configurado con username "TopiBot"
+  - Flujo simplificado: "topibot" → "mensaje" → (dicta tu mensaje)
+  - Confirmación auditiva (beep) al enviar exitosamente
+  - Error auditivo si falla la conexión
+  - Sin necesidad de especificar destinatario
+
+### 🔧 Arreglado
+
+- **Crash del servicio STT**: Crear nuevo recognizer por request
+  - Solucionado error "ASSERTION_FAILED: You must call InitDecoding() before AdvanceDecoding"
+  - El recognizer de Vosk ahora se instancia nuevo en cada `/listen` request
+  - Evita estado corrupto después de `FinalizeDecoding()`
+  - El servicio ya no se detiene después de múltiples requests
+
+- **Buzzer PWM**: Cambio de hardware PWM a software PWM
+  - GPIO 22 no tiene hardware PWM, solo software PWM
+  - Cambiado de `pigs hp` a `pigs p` (software PWM)
+  - Eliminados mensajes de error "GPIO has no hardware PWM"
+  - Buzzer ahora funciona correctamente con `pigs p 22 128`
+
+### 🗑️ Eliminado
+
+- Sistema multi-paso de mensajes (destinatarios predefinidos)
+- Funciones deprecated: `establecerDestinatario()`, `capturarMensaje()`
+- Constante `DESTINATARIOS` (padre/madre/esther)
+
 ## [1.3.0] - Diciembre 2025
 
 ### ✨ Añadido

@@ -7,6 +7,7 @@
 
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
+import https from 'https';
 
 // ========================================
 // CONFIGURACIÓN GPIO
@@ -16,6 +17,7 @@ const LED_PIN = 17; // GPIO 17 (Pin físico 11)
 const BUZZER_PIN = 22; // GPIO 22 (Pin físico 15)
 const BUZZER_FREQUENCY = 2000; // 2000Hz para buzzer pasivo
 const GPIO_CHIP = 'gpiochip0'; // Chip GPIO en Raspberry Pi
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1446504694204858491/_0D3_B1bM8Od5K0-Hke30Owcx7jEDF9Vh3Zjhb4J5Hx5cuS25V3TRr9oCIWQIYSqk66R';
 let gpioAvailable = false;
 let pigpioAvailable = false;
 
@@ -49,22 +51,9 @@ try {
 
 let ledState = false;
 
-// Estado para sistema de mensajes multi-paso
+// Estado para sistema de mensajes Discord
 let mensajeState = {
-  activo: false,
-  destinatario: null,
-  mensaje: null
-};
-
-// Mapeo de destinatarios
-const DESTINATARIOS = {
-  'padre': 'Padre',
-  'madre': 'Madre',
-  'esther': 'Esther',
-  'mamá': 'Madre',
-  'mama': 'Madre',
-  'papá': 'Padre',
-  'papa': 'Padre'
+  activo: false
 };
 
 // ========================================
@@ -72,72 +61,75 @@ const DESTINATARIOS = {
 // ========================================
 
 /**
- * Activa el modo mensaje
+ * Activa el modo mensaje para Discord
  */
 export function activarModoMensaje() {
   mensajeState.activo = true;
-  mensajeState.destinatario = null;
-  mensajeState.mensaje = null;
+  sonidoConfirmacion(); // 🔊 Beep de confirmación
   console.log("📨 Modo mensaje ACTIVADO");
-  console.log("👤 Di el nombre del destinatario: padre, madre, esther...");
+  console.log("💬 Di tu mensaje para Discord...");
 }
 
 /**
- * Establece el destinatario del mensaje
- * @param {string} texto - Texto con el nombre del destinatario
- */
-export function establecerDestinatario(texto) {
-  if (!mensajeState.activo) {
-    console.log("⚠️  Primero activa el modo mensaje diciendo: 'mensaje'");
-    return false;
-  }
-
-  const textoLower = texto.toLowerCase().trim();
-  
-  // Buscar destinatario en el texto
-  for (const [keyword, nombre] of Object.entries(DESTINATARIOS)) {
-    if (textoLower.includes(keyword)) {
-      mensajeState.destinatario = nombre;
-      console.log(`👤 Destinatario seleccionado: ${nombre}`);
-      console.log("💬 Ahora di tu mensaje...");
-      return true;
-    }
-  }
-  
-  console.log("⚠️  Destinatario no reconocido. Disponibles: padre, madre, esther");
-  return false;
-}
-
-/**
- * Captura y envía el mensaje
+ * Envía mensaje directo a Discord
  * @param {string} texto - El mensaje a enviar
  */
-export function capturarMensaje(texto) {
+export function enviarMensajeDiscord(texto) {
   if (!mensajeState.activo) {
     console.log("⚠️  Primero activa el modo mensaje diciendo: 'mensaje'");
     return;
   }
   
-  if (!mensajeState.destinatario) {
-    console.log("⚠️  Primero selecciona un destinatario");
-    return;
-  }
-  
-  mensajeState.mensaje = texto.trim();
+  const mensaje = texto.trim();
+  const mensajeCompleto = `Topibot dice: ${mensaje}`;
   
   console.log("\n╔════════════════════════════════════════╗");
-  console.log("║       📨 MENSAJE CAPTURADO 📨         ║");
+  console.log("║       📨 ENVIANDO A DISCORD 📨        ║");
   console.log("╚════════════════════════════════════════╝");
-  console.log(`👤 Destinatario: ${mensajeState.destinatario}`);
-  console.log(`💬 Mensaje: "${mensajeState.mensaje}"`);
+  console.log(`💬 Mensaje: "${mensajeCompleto}"`);
   console.log("════════════════════════════════════════");
-  console.log("✅ [Aquí se enviará por Telegram/Discord]");
-  console.log("");
   
-  // Resetear estado
-  mensajeState.activo = false;
-  mensajeState.destinatario = null;
-  mensajeState.mensaje = null;
+  // Preparar el payload para Discord
+  const payload = JSON.stringify({
+    content: mensajeCompleto,
+    username: "TopiBot"
+  });
+  
+  // Parsear la URL del webhook
+  const webhookUrl = new URL(DISCORD_WEBHOOK);
+  
+  const options = {
+    hostname: webhookUrl.hostname,
+    path: webhookUrl.pathname,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(payload)
+    }
+  };
+  
+  const req = https.request(options, (res) => {
+    if (res.statusCode === 204 || res.statusCode === 200) {
+      console.log("✅ Mensaje enviado a Discord correctamente");
+      sonidoActivacion(); // Beep de confirmación
+    } else {
+      console.log(`⚠️  Discord respondió con código: ${res.statusCode}`);
+    }
+    
+    // Resetear estado
+    mensajeState.activo = false;
+  });
+  
+  req.on('error', (error) => {
+    console.error("❌ Error al enviar mensaje a Discord:", error.message);
+    sonidoError();
+    
+    // Resetear estado
+    mensajeState.activo = false;
+  });
+  
+  req.write(payload);
+  req.end();
 }
 
 /**
@@ -145,8 +137,6 @@ export function capturarMensaje(texto) {
  */
 export function cancelarMensaje() {
   mensajeState.activo = false;
-  mensajeState.destinatario = null;
-  mensajeState.mensaje = null;
   console.log("❌ Modo mensaje CANCELADO");
 }
 

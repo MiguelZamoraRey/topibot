@@ -66,8 +66,7 @@ import {
   
   // Funciones de mensajería
   activarModoMensaje,
-  establecerDestinatario,
-  capturarMensaje,
+  enviarMensajeDiscord,
   cancelarMensaje,
   obtenerEstadoMensaje,
   
@@ -220,21 +219,14 @@ export function procesarComando(texto, sistemaActivo = false) {
   }
   
   // ========================================
-  // MANEJO ESPECIAL: SISTEMA DE MENSAJES MULTI-PASO
+  // MANEJO ESPECIAL: SISTEMA DE MENSAJES DISCORD
   // ========================================
   const estadoMensaje = obtenerEstadoMensaje();
   
   if (estadoMensaje.activo) {
-    // Si el modo mensaje está activo, determinar el paso
-    if (!estadoMensaje.destinatario) {
-      // Paso 1: Establecer destinatario
-      const destinatarioEstablecido = establecerDestinatario(texto);
-      return { ejecutado: destinatarioEstablecido, activacion: false };
-    } else {
-      // Paso 2: Capturar mensaje
-      capturarMensaje(texto);
-      return { ejecutado: true, activacion: false };
-    }
+    // Si el modo mensaje está activo, el siguiente texto se envía a Discord
+    enviarMensajeDiscord(texto);
+    return { ejecutado: true, activacion: false };
   }
   
   // ========================================
