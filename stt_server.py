@@ -22,7 +22,6 @@ if not os.path.exists(model_path):
 print(f"📦 Cargando modelo desde {model_path}...")
 try:
     model = Model(model_path)
-    recognizer = KaldiRecognizer(model, 16000)
     print("✅ Modelo cargado correctamente")
 except Exception as e:
     print(f"❌ ERROR al cargar modelo Vosk: {e}", file=sys.stderr)
@@ -76,11 +75,6 @@ audio_device, sample_rate = find_usb_microphone()
 if audio_device is None:
     sys.exit(1)
 
-# Recrear el recognizer con el sample rate correcto si es diferente de 16000
-if sample_rate != 16000:
-    print(f"⚙️  Recreando recognizer con sample rate {sample_rate} Hz...")
-    recognizer = KaldiRecognizer(model, sample_rate)
-
 q = queue.Queue()
 
 def callback(indata, frames, time, status):
@@ -88,7 +82,8 @@ def callback(indata, frames, time, status):
 
 @app.route("/listen", methods=["GET"])
 def listen():
-    recognizer.Reset()
+    # Crear un NUEVO recognizer para cada request (evita el crash de Vosk)
+    recognizer = KaldiRecognizer(model, sample_rate)
     
     # Limpiar la cola antes de empezar
     while not q.empty():
