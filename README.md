@@ -104,10 +104,15 @@ Micrófono → Python/Vosk → HTTP → Node.js → Acciones
 - **Hora**: "hora", "qué hora es"
 - **Fecha**: "fecha", "qué día es"
 
+### Entretenimiento
+- **Cantar**: "cantar", "canta", "canción", "música"
+  - TopiBot canta una melodía tonta de ~5 segundos con el buzzer
+
 ### Mensajes Discord
 - **Enviar mensaje**: "topibot" → "mensaje" → (di tu mensaje)
 - **Ejemplo**: "topibot" → "mensaje" → "hola equipo, estoy en camino"
 - **Cancelar**: "cancelar mensaje"
+- **Tiempo**: 20 segundos para dictar el mensaje
 
 ### Sistema
 - **Info**: "información", "sistema"

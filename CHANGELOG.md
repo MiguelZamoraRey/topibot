@@ -3,6 +3,26 @@
 
 Todos los cambios notables del proyecto se documentarán en este archivo.
 
+## [1.5.0] - Diciembre 2025
+
+### ✨ Añadido
+
+- **Comando "cantar"**: Melodía musical con el buzzer
+  - TopiBot puede cantar una canción tonta de ~5 segundos
+  - Usa diferentes intensidades PWM para simular notas musicales
+  - Patrón melódico: do-re-mi-mi / do-re-do-do / sol-sol-fa-mi / re-re-do
+  - Fallback rítmico simple para buzzers activos
+  - Keywords: "cantar", "canta", "canción", "música"
+
+- **Mejoras en mensajería Discord**:
+  - Tiempo extendido: 20 segundos para dictar mensajes (vs 10 segundos normales)
+  - Feedback claro: muestra tiempo restante durante grabación
+  - Beep de confirmación al activar modo mensaje
+  - Prefijo automático "Topibot dice:" en todos los mensajes
+  - Beep de cancelación si se cancela el mensaje
+  - Auto-reactivación: mantiene escucha activa después de "mensaje"
+  - Notificación cuando se agota el tiempo
+
 ## [1.4.0] - Diciembre 2025
 
 ### ✨ Añadido
