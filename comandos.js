@@ -68,6 +68,7 @@ import {
   sonidoActivacion,
   sonidoConfirmacion,
   sonidoError,
+  cantar,
   
   // Funciones de mensajería
   activarModoMensaje,
@@ -152,6 +153,15 @@ export const comandos = [
     keywords: ["fecha", "qué día es", "que dia es", "día", "calendario"],
     action: decirFecha,
     description: "Dice la fecha actual"
+  },
+  
+  // ========================================
+  // COMANDOS DE ENTRETENIMIENTO
+  // ========================================
+  {
+    keywords: ["cantar", "canta", "canción", "cancion", "música", "musica"],
+    action: cantar,
+    description: "Canta una melodía con el buzzer"
   },
   
   // ========================================

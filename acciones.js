@@ -310,6 +310,57 @@ export function sonidoError() {
   }
 }
 
+/**
+ * Canción tonta con el buzzer - Melodía divertida usando PWM
+ */
+export function cantar() {
+  if (!gpioAvailable) {
+    console.log("🎵 [Simulación] ♪♫ Cantando una canción tonta ♪♫");
+    return;
+  }
+  
+  try {
+    console.log("🎵 ♪♫ Cantando... ♪♫");
+    
+    if (pigpioAvailable) {
+      // Melodía usando diferentes duty cycles para simular notas
+      // Patrón: do-re-mi-mi / do-re-do-do / sol-sol-fa-mi / re-re-do
+      const cmd = `(
+        pigs p ${BUZZER_PIN} 100 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 120 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 140 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 140 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.1 &&
+        pigs p ${BUZZER_PIN} 100 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 120 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 100 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 100 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.1 &&
+        pigs p ${BUZZER_PIN} 180 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 180 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 160 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 140 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.1 &&
+        pigs p ${BUZZER_PIN} 120 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 120 && sleep 0.25 && pigs p ${BUZZER_PIN} 0 && sleep 0.05 &&
+        pigs p ${BUZZER_PIN} 100 && sleep 0.4 && pigs p ${BUZZER_PIN} 0
+      ) &`;
+      execSync(cmd);
+    } else {
+      // Fallback: patrón rítmico simple
+      const cmd = `(
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 &&
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 &&
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.15 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.1 &&
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.2 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.1 &&
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.1 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 &&
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.1 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0 && sleep 0.05 &&
+        gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=1 && sleep 0.3 && gpioset -c ${GPIO_CHIP} ${BUZZER_PIN}=0
+      ) &`;
+      execSync(cmd);
+    }
+  } catch (err) {
+    console.log('⚠️  Error en canción:', err.message);
+  }
+}
+
 // ========================================
 // FUNCIONES DE INFORMACIÓN
 // ========================================
